@@ -5,7 +5,11 @@ import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNo
 import * as THREE from 'three';
 import gsap from 'gsap';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { buildHouseFromFootprint, makeHoloMaterials } from './buildHouseFromFootprint';
+import {
+  buildHouseFromFootprint,
+  buildRoofFromFootprint,
+  makeHoloMaterials,
+} from './buildHouseFromFootprint';
 import { generateInterior, furnitureFor } from './proceduralInterior';
 import ContainmentSphere from './ContainmentSphere';
 import DustField from './DustField';
@@ -126,6 +130,10 @@ function ProceduralBody({
     () => buildHouseFromFootprint(footprint.ring, listing.floors),
     [footprint, listing.floors],
   );
+  const roof = useMemo(
+    () => buildRoofFromFootprint(footprint.ring, listing.floors),
+    [footprint, listing.floors],
+  );
   const rooms = useMemo(() => generateInterior(dims, listing), [dims, listing]);
   const roomEdges = useMemo(() => {
     const box = new THREE.BoxGeometry(1, 1, 1);
@@ -142,16 +150,20 @@ function ProceduralBody({
     () => () => {
       geometry.dispose();
       edges.dispose();
+      roof.geometry.dispose();
+      roof.edges.dispose();
       roomEdges.dispose();
       roomMat.dispose();
     },
-    [geometry, edges, roomEdges, roomMat],
+    [geometry, edges, roof, roomEdges, roomMat],
   );
 
   return (
     <>
       <mesh geometry={geometry} material={glass} />
       <lineSegments geometry={edges} material={wire} />
+      <mesh geometry={roof.geometry} material={glass} />
+      <lineSegments geometry={roof.edges} material={wire} />
       {rooms.map((r, i) => (
         <group key={i}>
           <lineSegments geometry={roomEdges} material={roomMat} position={r.pos} scale={r.size} />
