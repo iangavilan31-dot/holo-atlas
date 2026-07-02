@@ -190,6 +190,97 @@ body {
   filter: blur(14px) brightness(0.5) saturate(0.85);
 }
 
+/* ---------- targets rail ---------- */
+.listing-rail {
+  position: absolute;
+  right: 20px;
+  top: 96px;
+  bottom: 96px;
+  z-index: 40;
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* ---------- first-run hint ---------- */
+.scan-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: max-content;
+  bottom: 88px;
+  z-index: 39;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 16px;
+  background: var(--glass-light);
+  border-radius: 999px;
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+  animation: hint-in 0.8s var(--ease-holo) 0.9s both;
+  pointer-events: none;
+}
+.scan-hint__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--sky-deep);
+  animation: hint-pulse 1.8s var(--ease-holo) infinite;
+}
+@keyframes hint-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hint-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ---------- control dock ----------
+   left:0+right:0+margin:auto+max-content: centered WITHOUT the left-50%
+   shrink-to-fit trap (which halves available width and force-wraps on phones) */
+.control-dock {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 92vw;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ---------- tour scrubber wrapper ---------- */
+.scrub-wrap {
+  position: absolute;
+  bottom: 74px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: max-content;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* ---------- listing cards (targets rail) ---------- */
 .listing-card {
   appearance: none;
@@ -300,8 +391,11 @@ body {
   outline: none;
 }
 
-/* ---------- responsive: tablets / narrow ---------- */
+/* ---------- responsive: tablets ---------- */
 @media (max-width: 920px) {
+  .listing-rail {
+    width: 212px;
+  }
   .tour-scrub {
     width: 200px;
   }
@@ -320,6 +414,52 @@ body {
     padding: 9px 14px 8px;
     font-size: 12px;
     letter-spacing: 0.04em;
+  }
+}
+
+/* ---------- responsive: phones ---------- */
+@media (max-width: 640px) {
+  /* rail becomes a horizontal strip above the dock — the map stays visible */
+  .listing-rail {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 92px;
+    width: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 6px;
+  }
+  .listing-rail .rail-head {
+    display: none;
+  }
+  .listing-card {
+    flex: 0 0 196px;
+  }
+  .hbtn {
+    padding: 7px 9px 6px;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    gap: 5px;
+  }
+  .control-dock {
+    gap: 6px;
+    max-width: 96vw;
+  }
+  .ticker {
+    display: none;
+  }
+  .scrub-wrap {
+    bottom: 122px;
+  }
+  .tour-scrub {
+    width: 150px;
+  }
+  .scan-hint {
+    bottom: 82px;
+    font-size: 10px;
+    padding: 8px 13px;
   }
 }
 

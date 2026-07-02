@@ -343,7 +343,15 @@ export default function HouseHologram({
   const fit = Math.max(dims.width, dims.depth, dims.height);
   // tightest field that still contains the house with margin
   const sphereR = Math.max((Math.hypot(dims.width, dims.depth) / 2) * 1.12, dims.height * 1.15);
-  const camPos: [number, number, number] = [sphereR * 1.75, sphereR * 1.15, sphereR * 1.75];
+  // portrait screens need a longer default orbit or the house crops hard
+  const aspect =
+    typeof window !== 'undefined' ? window.innerWidth / Math.max(1, window.innerHeight) : 1.6;
+  const zoomOut = aspect < 1 ? 1.55 : aspect < 1.3 ? 1.2 : 1;
+  const camPos: [number, number, number] = [
+    sphereR * 1.75 * zoomOut,
+    sphereR * 1.15 * zoomOut,
+    sphereR * 1.75 * zoomOut,
+  ];
 
   return (
     <Canvas

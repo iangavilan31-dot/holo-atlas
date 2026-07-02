@@ -7,7 +7,7 @@ export default function TourScrubber() {
   const isPlaying = useStore((s) => s.isPlaying);
 
   return (
-    <div className="absolute bottom-[74px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
+    <div className="scrub-wrap">
       <span
         className="text-[11px] font-extrabold tracking-[0.1em] uppercase"
         style={{ fontFamily: 'var(--font-display)', color: 'rgba(255,255,255,0.7)' }}

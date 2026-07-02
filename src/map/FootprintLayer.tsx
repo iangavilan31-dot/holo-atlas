@@ -137,6 +137,11 @@ export default function FootprintLayer() {
       const t0 = performance.now();
       const pulse = () => {
         if (disposed || !map.getStyle()) return;
+        // idle before any scan: layers hidden — skip the paint churn entirely
+        if (reveal.v === 0 && !useStore.getState().scanActive) {
+          raf = requestAnimationFrame(pulse);
+          return;
+        }
         const t = (performance.now() - t0) / 1000;
         const breathe = 0.62 + 0.34 * Math.sin(t * 2.6);
         const v = reveal.v;

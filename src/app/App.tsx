@@ -14,6 +14,7 @@ import { useEffect } from 'react';
 export default function App() {
   const hudVisible = useStore((s) => s.hudVisible);
   const mode = useStore((s) => s.mode);
+  const scanActive = useStore((s) => s.scanActive);
 
   useEffect(() => {
     startBuildQueue();
@@ -30,6 +31,12 @@ export default function App() {
       <HologramOverlay />
 
       {hudVisible && mode === 'MAP' && <ListingRail />}
+      {hudVisible && mode === 'MAP' && !scanActive && (
+        <div className="scan-hint" aria-hidden>
+          <span className="scan-hint__dot" />
+          SWEEP THE SECTOR — PRESS SCAN AREA
+        </div>
+      )}
       <TopBar />
       {hudVisible && <ControlDock />}
       {hudVisible && mode === 'HOLOGRAM' && <TourScrubber />}

@@ -35,12 +35,9 @@ export default function ListingRail() {
   if (!scanActive) return null;
 
   return (
-    <div
-      ref={railRef}
-      className="absolute right-5 top-24 bottom-24 z-40 w-[268px] max-[920px]:w-[212px] overflow-y-auto pr-1 flex flex-col gap-2"
-    >
+    <div ref={railRef} className="listing-rail">
       <div
-        className="text-[13px] font-black uppercase tracking-[0.06em] mb-1 pl-1 text-white"
+        className="rail-head text-[13px] font-black uppercase tracking-[0.06em] mb-1 pl-1 text-white"
         style={{ fontFamily: 'var(--font-display)' }}
       >
         Structures — {atlas.listings.length} locked

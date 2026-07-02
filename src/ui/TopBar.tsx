@@ -11,15 +11,15 @@ export default function TopBar() {
 
   return (
     <header
-      className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between px-7 pt-6 pointer-events-none"
+      className="absolute top-0 left-0 right-0 z-40 flex items-start justify-between px-7 pt-6 max-[640px]:px-4 max-[640px]:pt-4 pointer-events-none"
       style={{ fontFamily: 'var(--font-display)' }}
     >
       <div className="pointer-events-auto">
-        <div className="text-[24px] font-black leading-none text-white">
+        <div className="text-[24px] max-[640px]:text-[19px] font-black leading-none text-white whitespace-nowrap">
           SPYGLASS<span style={{ color: 'var(--sky)' }}> ATLAS</span>
         </div>
         <div
-          className="mt-1.5 text-[12px] font-semibold uppercase tracking-[0.08em]"
+          className="mt-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] max-[640px]:hidden"
           style={{ color: 'rgba(255,255,255,0.55)' }}
         >
           {mode === 'MAP' ? `Sector — ${CONFIG.demoAddress}` : 'Reconstruction bay — active'}
