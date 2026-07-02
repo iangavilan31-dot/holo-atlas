@@ -33,3 +33,19 @@ Strict per-phase review. A phase does not pass below **95/100**.
 **Remaining:** visual screenshot pass rides along with P2 (same server).
 
 **Score: 95/100** — pass.
+
+---
+
+## P2 — Satellite map with holographic tint
+
+**Built:** MapLibre with a hand-built style: Esri World Imagery raster (free, keyless, attributed) desaturated −0.92 and darkened, finished by CSS layers — `mix-blend-mode: color` cyan-steel grade, radial vignette, faint instrument dot-grid. OpenFreeMap vector overlay as the `detail-*` group: water fills, cyan hairline minor/major roads, 3D building extrusions (minzoom 14), uppercase tracked street + place labels (Noto Sans via OpenFreeMap glyphs). `setDetailVisible()` drives TOGGLE MAP DETAIL. Pitch 55 / bearing −20 opening camera; RESET VIEW glides home via `flyTo` (1.6s). Map instance shared through `mapSingleton` for later layers. Playwright screenshot harness (`scripts/shots.mjs`) with real-click scenarios.
+
+**Tested:** Headless Chromium (hardware ANGLE/D3D11): 32 satellite + 6 vector tile requests, zero failures, `map.loaded() && areTilesLoaded()` true, zero console errors. Shots verified: `map.png` (full grade + labels), `detail-off.png` (vector overlay gone, button state flips), `hud-off.png`.
+
+**Weak / found broken:** Two real bugs caught by pixel-level verification: (1) `@import './overlays.css'` placed after `@tailwind` directives is illegal CSS and was silently dropped — all button/glass styling missing; (2) `maplibre-gl.css` loads after Tailwind and its `.maplibregl-map{position:relative}` beat the `absolute` utility → container collapsed to 0 height, black canvas. First grade pass was too monochrome-navy.
+
+**Improved:** Both bugs fixed (imports hoisted to top; inline position on the map container). Grade pushed toward teal (#136076 head), brightness-max 0.62→0.7, road/extrusion opacities raised — imagery now reads unmistakably as a cyan hologram table, not a flat dark map. `preserveDrawingBuffer` enabled so every future phase can be pixel-verified.
+
+**Remaining:** grade may get one more pass in P8 alongside bloom-heavy scenes.
+
+**Score: 96/100** — pass.

@@ -169,5 +169,55 @@ body {
 }
 .ticker__label { white-space: nowrap; }
 
+/* ---------- map finishing grade ---------- */
+.map-grade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background: linear-gradient(160deg, #136076 0%, #0a3448 45%, #051523 100%);
+  mix-blend-mode: color;
+  opacity: 0.94;
+}
+.map-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 11;
+  background: radial-gradient(
+    ellipse 72% 62% at 50% 44%,
+    transparent 0%,
+    rgba(3, 6, 14, 0.18) 55%,
+    rgba(3, 6, 14, 0.82) 100%
+  );
+}
+.map-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  opacity: 0.35;
+  background-image: radial-gradient(var(--grid-line) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+/* maplibre chrome, restyled dark */
+.maplibregl-ctrl-attrib {
+  background: rgba(3, 6, 14, 0.55) !important;
+  font-family: var(--font-hud);
+  font-size: 9px !important;
+  letter-spacing: 0.04em;
+}
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib a {
+  color: rgba(143, 244, 255, 0.45) !important;
+}
+.maplibregl-ctrl-attrib-button {
+  filter: invert(0.8) hue-rotate(140deg);
+}
+.maplibregl-canvas:focus {
+  outline: none;
+}
+
 /* ---------- scrollbars ---------- */
 * { scrollbar-width: thin; scrollbar-color: rgba(53, 228, 255, 0.35) transparent; }

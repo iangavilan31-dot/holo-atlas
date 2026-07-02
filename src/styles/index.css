@@ -1,10 +1,9 @@
 @import './tokens.css';
+@import './overlays.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import './overlays.css';
 
 html,
 body,
