@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Html } from '@react-three/drei';
+import { OrbitControls, Grid, Html, useGLTF } from '@react-three/drei';
 import {
   EffectComposer,
   Bloom,
@@ -7,7 +7,7 @@ import {
   Noise,
   Vignette,
 } from '@react-three/postprocessing';
-import { useEffect, useMemo, useRef } from 'react';
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -19,6 +19,13 @@ import { tourRig, clearTourRig } from './tourRig';
 import { useStore } from '../store/useStore';
 import { CONFIG } from '../config';
 import type { Listing, FootprintResult } from '../data/types';
+
+interface Dims {
+  width: number;
+  depth: number;
+  height: number;
+  floors: number;
+}
 
 function ScanSweepPlane({ height, span }: { height: number; span: number }) {
   const ref = useRef<THREE.Mesh>(null!);
@@ -42,44 +49,165 @@ function ScanSweepPlane({ height, span }: { height: number; span: number }) {
   );
 }
 
-function House({ footprint, listing }: { footprint: FootprintResult; listing: Listing }) {
-  const grp = useRef<THREE.Group>(null!);
-  const { geometry, edges, dims } = useMemo(
+/** GLB failed to load/parse → procedural reconstruction takes over. */
+class HoloBoundary extends Component<
+  { fallback: ReactNode; children: ReactNode; onError?: () => void },
+  { err: boolean }
+> {
+  state = { err: false };
+  static getDerivedStateFromError() {
+    return { err: true };
+  }
+  componentDidCatch() {
+    this.props.onError?.();
+  }
+  render() {
+    return this.state.err ? this.props.fallback : this.props.children;
+  }
+}
+
+/** Blender-authored model, normalised to the footprint envelope + holo-treated. */
+function GLBBody({
+  url,
+  dims,
+  glass,
+  wire,
+}: {
+  url: string;
+  dims: Dims;
+  glass: THREE.MeshStandardMaterial;
+  wire: THREE.LineBasicMaterial;
+}) {
+  const { scene } = useGLTF(url);
+  const { root, createdEdges } = useMemo(() => {
+    const root = scene.clone(true);
+    const createdEdges: THREE.EdgesGeometry[] = [];
+    root.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) {
+        const mesh = o as THREE.Mesh;
+        mesh.material = glass;
+        const eg = new THREE.EdgesGeometry(mesh.geometry, 22);
+        createdEdges.push(eg);
+        mesh.add(new THREE.LineSegments(eg, wire));
+      }
+    });
+    // normalise: match footprint envelope, centre, seat on the grid
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const scale = Math.max(dims.width, dims.depth) / Math.max(size.x, size.z, 0.001);
+    root.scale.setScalar(scale);
+    box.setFromObject(root);
+    const c = box.getCenter(new THREE.Vector3());
+    root.position.set(root.position.x - c.x, root.position.y - box.min.y, root.position.z - c.z);
+    return { root, createdEdges };
+  }, [scene, dims, glass, wire]);
+
+  useEffect(
+    () => () => {
+      for (const eg of createdEdges) eg.dispose();
+    },
+    [createdEdges],
+  );
+
+  // dispose={null}: the GLB geometries live in drei's loader cache — R3F must
+  // not destroy them on close or the next open would get dead buffers
+  return <primitive object={root} dispose={null} />;
+}
+
+/** Extruded real-footprint shell + procedural rooms/furniture. */
+function ProceduralBody({
+  footprint,
+  listing,
+  dims,
+  glass,
+  wire,
+}: {
+  footprint: FootprintResult;
+  listing: Listing;
+  dims: Dims;
+  glass: THREE.MeshStandardMaterial;
+  wire: THREE.LineBasicMaterial;
+}) {
+  const { geometry, edges } = useMemo(
     () => buildHouseFromFootprint(footprint.ring, listing.floors),
     [footprint, listing.floors],
   );
-  const { glass, wire } = useMemo(() => makeHoloMaterials(), []);
   const rooms = useMemo(() => generateInterior(dims, listing), [dims, listing]);
-  const lightRefs = useRef<THREE.PointLight[]>([]);
-  // shared unit-box EDGES (not wireframe — no triangle diagonals), scaled per room
   const roomEdges = useMemo(() => {
     const box = new THREE.BoxGeometry(1, 1, 1);
-    const edges = new THREE.EdgesGeometry(box);
+    const edgesGeo = new THREE.EdgesGeometry(box);
     box.dispose();
-    return edges;
+    return edgesGeo;
   }, []);
   const roomMat = useMemo(
     () => new THREE.LineBasicMaterial({ color: 0x35e4ff, transparent: true, opacity: 0.32 }),
     [],
   );
 
-  // register rig for the tour timeline + explicit GPU disposal
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      edges.dispose();
+      roomEdges.dispose();
+      roomMat.dispose();
+    },
+    [geometry, edges, roomEdges, roomMat],
+  );
+
+  return (
+    <>
+      <mesh geometry={geometry} material={glass} />
+      <lineSegments geometry={edges} material={wire} />
+      {rooms.map((r, i) => (
+        <group key={i}>
+          <lineSegments geometry={roomEdges} material={roomMat} position={r.pos} scale={r.size} />
+          {furnitureFor(r).map((f, j) => (
+            <mesh key={j} position={f.pos}>
+              <boxGeometry args={f.size} />
+              <meshStandardMaterial
+                color={0x8ff4ff}
+                emissive={0x0ab6d6}
+                emissiveIntensity={0.5}
+                transparent
+                opacity={0.5}
+              />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </>
+  );
+}
+
+function House({
+  footprint,
+  listing,
+  dims,
+  modelUrl,
+  onGlbFailed,
+}: {
+  footprint: FootprintResult;
+  listing: Listing;
+  dims: Dims;
+  modelUrl: string | null;
+  onGlbFailed: () => void;
+}) {
+  const grp = useRef<THREE.Group>(null!);
+  const { glass, wire } = useMemo(() => makeHoloMaterials(), []);
+  const lightRefs = useRef<THREE.PointLight[]>([]);
+
   useEffect(() => {
     tourRig.houseGroup = grp.current;
     tourRig.dims = dims;
     tourRig.roomLights = lightRefs.current.filter(Boolean);
     return () => {
       clearTourRig();
-      geometry.dispose();
-      edges.dispose();
       glass.dispose();
       wire.dispose();
-      roomEdges.dispose();
-      roomMat.dispose();
     };
-  }, [geometry, edges, glass, wire, dims, roomEdges, roomMat]);
+  }, [glass, wire, dims]);
 
-  // bloom-in: the house materialises
+  // bloom-in: the reconstruction materialises
   useEffect(() => {
     const g = grp.current;
     if (!g) return;
@@ -106,7 +234,6 @@ function House({ footprint, listing }: { footprint: FootprintResult; listing: Li
     }
   });
 
-  // one warm room light per floor, off until the tour ramps them
   const floorLights = useMemo(() => {
     const fh = dims.height / dims.floors;
     return Array.from({ length: dims.floors }, (_, f) => ({
@@ -114,27 +241,21 @@ function House({ footprint, listing }: { footprint: FootprintResult; listing: Li
     }));
   }, [dims]);
 
+  const procedural = (
+    <ProceduralBody footprint={footprint} listing={listing} dims={dims} glass={glass} wire={wire} />
+  );
+
   return (
     <group ref={grp}>
-      <mesh geometry={geometry} material={glass} />
-      <lineSegments geometry={edges} material={wire} />
-      {rooms.map((r, i) => (
-        <group key={i}>
-          <lineSegments geometry={roomEdges} material={roomMat} position={r.pos} scale={r.size} />
-          {furnitureFor(r).map((f, j) => (
-            <mesh key={j} position={f.pos}>
-              <boxGeometry args={f.size} />
-              <meshStandardMaterial
-                color={0x8ff4ff}
-                emissive={0x0ab6d6}
-                emissiveIntensity={0.5}
-                transparent
-                opacity={0.5}
-              />
-            </mesh>
-          ))}
-        </group>
-      ))}
+      {modelUrl ? (
+        <HoloBoundary fallback={procedural} onError={onGlbFailed}>
+          <Suspense fallback={null}>
+            <GLBBody url={modelUrl} dims={dims} glass={glass} wire={wire} />
+          </Suspense>
+        </HoloBoundary>
+      ) : (
+        procedural
+      )}
       {floorLights.map((l, i) => (
         <pointLight
           key={i}
@@ -152,13 +273,7 @@ function House({ footprint, listing }: { footprint: FootprintResult; listing: Li
   );
 }
 
-function Rig({
-  dims,
-  camPos,
-}: {
-  dims: { width: number; depth: number; height: number };
-  camPos: [number, number, number];
-}) {
+function Rig({ dims, camPos }: { dims: Dims; camPos: [number, number, number] }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const resetSignal = useStore((s) => s.resetSignal);
@@ -170,7 +285,7 @@ function Rig({
     controlsRef.current?.saveState();
   }, [camera]);
 
-  // RESET VIEW — recover the default orbit instantly-smooth
+  // RESET VIEW — recover the default orbit
   useEffect(() => {
     if (resetSignal === 0) return;
     const c = controlsRef.current;
@@ -212,12 +327,16 @@ function Rig({
 export default function HouseHologram({
   footprint,
   listing,
+  modelUrl,
 }: {
   footprint: FootprintResult;
   listing: Listing;
+  modelUrl: string | null;
 }) {
+  // a broken GLB flips this so the mesh label stays honest
+  const [glbFailed, setGlbFailed] = useState(false);
   // envelope straight from the ring — no throwaway geometry
-  const dims = useMemo(() => {
+  const dims = useMemo<Dims>(() => {
     const xs = footprint.ring.map((p) => p[0]);
     const zs = footprint.ring.map((p) => p[1]);
     return {
@@ -256,7 +375,13 @@ export default function HouseHologram({
         position={[0, 0, 0]}
       />
 
-      <House footprint={footprint} listing={listing} />
+      <House
+        footprint={footprint}
+        listing={listing}
+        dims={dims}
+        modelUrl={modelUrl}
+        onGlbFailed={() => setGlbFailed(true)}
+      />
       <ContainmentSphere radius={sphereR} />
       <DustField radius={sphereR} />
 
@@ -277,7 +402,9 @@ export default function HouseHologram({
           <div>
             BUILT {listing.yearBuilt} · {listing.floors} FL · {listing.style.toUpperCase()}
           </div>
-          <div className="holo-panel__ok">MESH {footprint.source.toUpperCase()} · STABLE</div>
+          <div className="holo-panel__ok">
+            MESH {modelUrl && !glbFailed ? 'BLENDER GLB' : footprint.source.toUpperCase()} · STABLE
+          </div>
         </div>
       </Html>
       <Html
@@ -292,7 +419,9 @@ export default function HouseHologram({
           <div>
             ENVELOPE {dims.width.toFixed(1)} × {dims.depth.toFixed(1)} × {dims.height.toFixed(1)} M
           </div>
-          <div>FLOORS {dims.floors} · ROOMS {listing.beds + listing.baths + 1}</div>
+          <div>
+            FLOORS {dims.floors} · ROOMS {listing.beds + listing.baths + 1}
+          </div>
           <div>CONTAINMENT ACTIVE · FIELD {Math.round(sphereR * 10) / 10} M</div>
           <div className="holo-panel__ok">INTEGRITY 99.7% · DRIFT 0.002</div>
         </div>

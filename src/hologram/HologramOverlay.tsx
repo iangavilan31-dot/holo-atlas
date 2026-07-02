@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import HouseHologram from './HouseHologram';
 import { getListing, getFootprint, loadAtlas } from '../data/atlasData';
+import { getModelUrl } from '../data/modelManifest';
 import { useStore } from '../store/useStore';
 import type { Listing, FootprintResult } from '../data/types';
 
 interface Payload {
   listing: Listing;
   footprint: FootprintResult;
+  modelUrl: string | null;
 }
 
 /**
@@ -27,11 +29,11 @@ export default function HologramOverlay() {
     setActiveId(openId);
     let alive = true;
     (async () => {
-      await loadAtlas();
+      const [, modelUrl] = await Promise.all([loadAtlas(), getModelUrl(openId)]);
       if (!alive) return;
       const listing = getListing(openId);
       const footprint = getFootprint(openId);
-      if (listing && footprint) setPayload({ listing, footprint });
+      if (listing && footprint) setPayload({ listing, footprint, modelUrl });
     })();
     return () => {
       alive = false;
@@ -77,7 +79,11 @@ export default function HologramOverlay() {
       style={{ background: '#04070F', opacity: 0 }}
     >
       {payload ? (
-        <HouseHologram listing={payload.listing} footprint={payload.footprint} />
+        <HouseHologram
+          listing={payload.listing}
+          footprint={payload.footprint}
+          modelUrl={payload.modelUrl}
+        />
       ) : (
         <div className="h-full w-full flex flex-col items-center justify-center gap-4">
           <div
