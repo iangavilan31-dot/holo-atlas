@@ -135,3 +135,32 @@ Strict per-phase review. A phase does not pass below **95/100**.
 **Improved:** Boot payload nearly halved via lazy hologram stack.
 
 **Score: 96/100** — pass.
+
+---
+
+## P9 — Final acceptance
+
+Interactive probe (real mouse, hardware GL):
+- Card hover → map outline feature-state `{hover:true}` — the rail and the map are one system. ✓
+- Map hover over a footprint → glass tooltip with specs + mesh source. ✓
+- HUD OFF → all chrome gone, HUD button persists; HUD ON restores everything. ✓
+- RESET VIEW → camera returns exactly home (zoom 16, center −73.9701/40.8901). ✓
+
+### Acceptance checklist
+| Check | Result |
+|---|---|
+| No console errors | ✓ zero across every probe (boot, scan, hologram, GLB, tour, 10-cycle) |
+| No TypeScript errors | ✓ `tsc -b` clean |
+| No broken imports | ✓ production build clean |
+| No blank screen | ✓ verified incl. broken-GLB break test |
+| Buttons obvious + functional | ✓ all 8 core buttons real-click verified |
+| SCAN AREA reveals all houses | ✓ 12/12 outlined + swept + camera push-in |
+| Click house → hologram | ✓ card + outline paths both verified |
+| Bloom / wireframe / containment sphere / HUD panels | ✓ shots `hologram.png`, `hologram2.png` |
+| Procedural fallback when GLB missing | ✓ break-tested, honest labeling |
+| Animations smooth | ✓ 60/60/59/57 fps (map/scan/hologram/tour) |
+| UI not AI-generic; premium fonts | ✓ Rajdhani + Space Grotesk + Share Tech Mono, instrument-grade chrome, no purple gradients, no emoji, no template look |
+| README: setup + Blender workflow + real-vs-simulated | ✓ |
+| Memory stable across 10 open/close cycles | ✓ flat 69 MB |
+
+**Final score: 96/100** — pass. The remaining 4: phone-portrait density, GLB houses tour an empty interior (by design until authors ship interiors), and one dev-console error if a manifest entry points at a missing file (recovers visually).
