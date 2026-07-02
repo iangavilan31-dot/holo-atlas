@@ -1,51 +1,31 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, Html, useGLTF } from '@react-three/drei';
-import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing';
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
+import {
+  OrbitControls,
+  Environment,
+  Lightformer,
+  ContactShadows,
+  Html,
+  useGLTF,
+} from '@react-three/drei';
+import { EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
+import {
+  Component,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import {
-  buildHouseFromFootprint,
-  buildRoofFromFootprint,
-  makeHoloMaterials,
-} from './buildHouseFromFootprint';
-import { generateInterior, furnitureFor } from './proceduralInterior';
-import ContainmentSphere from './ContainmentSphere';
-import DustField from './DustField';
+import { buildArchModel, disposeArchModel, type ArchModel } from './buildArchModel';
+import { makeArchMaterials, ARCH, type ArchMaterials } from './archMaterials';
+import { cameraShots } from './cameraPresets';
 import { tourRig, clearTourRig } from './tourRig';
 import { useStore } from '../store/useStore';
-import { CONFIG } from '../config';
 import type { Listing, FootprintResult } from '../data/types';
-
-interface Dims {
-  width: number;
-  depth: number;
-  height: number;
-  floors: number;
-}
-
-function ScanSweepPlane({ height, span }: { height: number; span: number }) {
-  const ref = useRef<THREE.Mesh>(null!);
-  useFrame(({ clock }) => {
-    const t = (clock.getElapsedTime() * 0.35) % 1;
-    ref.current.position.y = t * height;
-    (ref.current.material as THREE.Material).opacity = 0.16 * (1 - Math.abs(t - 0.5) * 2);
-  });
-  return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[span, span]} />
-      <meshBasicMaterial
-        color={0xeaf7fd}
-        transparent
-        opacity={0.3}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  );
-}
 
 /** GLB failed to load/parse → procedural reconstruction takes over. */
 class HoloBoundary extends Component<
@@ -64,272 +44,295 @@ class HoloBoundary extends Component<
   }
 }
 
-/** Blender-authored model, normalised to the footprint envelope + holo-treated. */
-function GLBBody({
-  url,
-  dims,
-  glass,
-  wire,
-}: {
-  url: string;
-  dims: Dims;
-  glass: THREE.MeshStandardMaterial;
-  wire: THREE.LineBasicMaterial;
-}) {
-  const { scene } = useGLTF(url);
-  const { root, createdEdges } = useMemo(() => {
-    const root = scene.clone(true);
-    const createdEdges: THREE.EdgesGeometry[] = [];
-    root.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) {
-        const mesh = o as THREE.Mesh;
-        mesh.material = glass;
-        const eg = new THREE.EdgesGeometry(mesh.geometry, 22);
-        createdEdges.push(eg);
-        mesh.add(new THREE.LineSegments(eg, wire));
-      }
+/** Drives the shared x-ray progress across all model materials + roof lift. */
+function useXrayRig(mats: ArchMaterials, model: ArchModel) {
+  const roofGroup = useRef<THREE.Group>(null!);
+  const prog = useRef(0);
+
+  const apply = useMemo(() => {
+    return (v: number) => {
+      const on = v > 0.001;
+      // exterior walls: opaque plaster → light-blue x-ray ghost
+      mats.wall.transparent = on;
+      mats.wall.depthWrite = v < 0.5;
+      mats.wall.opacity = 1 - v * 0.86;
+      mats.wall.color.copy(ARCH.wallWarm).lerp(ARCH.wallXray, v);
+      // roof lifts and fades
+      mats.roof.transparent = on;
+      mats.roof.depthWrite = v < 0.5;
+      mats.roof.opacity = 1 - v * 0.8;
+      if (roofGroup.current) roofGroup.current.position.y = v * model.dims.height * 0.3;
+      // glazing recedes with the walls
+      mats.glazing.transparent = on;
+      mats.glazing.opacity = 1 - v * 0.7;
+      // structural edges brighten to accent
+      mats.wallLine.color.copy(ARCH.lineDark).lerp(ARCH.lineXray, v);
+      mats.wallLine.opacity = 0.5 + v * 0.4;
+      mats.roofLine.color.copy(ARCH.lineDark).lerp(ARCH.lineXray, v);
+    };
+  }, [mats, model]);
+
+  const xray = useStore((s) => s.xray);
+  useEffect(() => {
+    const target = xray ? 1 : 0;
+    const t = gsap.to(prog, {
+      current: target,
+      duration: 0.9,
+      ease: 'power3.inOut',
+      onUpdate: () => apply(prog.current),
     });
-    // normalise: match footprint envelope, centre, seat on the grid
-    const box = new THREE.Box3().setFromObject(root);
-    const size = box.getSize(new THREE.Vector3());
-    const scale = Math.max(dims.width, dims.depth) / Math.max(size.x, size.z, 0.001);
-    root.scale.setScalar(scale);
-    box.setFromObject(root);
-    const c = box.getCenter(new THREE.Vector3());
-    root.position.set(root.position.x - c.x, root.position.y - box.min.y, root.position.z - c.z);
-    return { root, createdEdges };
-  }, [scene, dims, glass, wire]);
+    return () => {
+      t.kill();
+    };
+  }, [xray, apply]);
 
-  useEffect(
-    () => () => {
-      for (const eg of createdEdges) eg.dispose();
-    },
-    [createdEdges],
-  );
-
-  // dispose={null}: the GLB geometries live in drei's loader cache — R3F must
-  // not destroy them on close or the next open would get dead buffers
-  return <primitive object={root} dispose={null} />;
+  return roofGroup;
 }
 
-/** Extruded real-footprint shell + procedural rooms/furniture. */
-function ProceduralBody({
+/** Solid architectural massing model + revealed interior. */
+function ArchHouse({
   footprint,
   listing,
-  dims,
-  glass,
-  wire,
+  mats,
 }: {
   footprint: FootprintResult;
   listing: Listing;
-  dims: Dims;
-  glass: THREE.MeshStandardMaterial;
-  wire: THREE.LineBasicMaterial;
-}) {
-  const { geometry, edges } = useMemo(
-    () => buildHouseFromFootprint(footprint.ring, listing.floors),
-    [footprint, listing.floors],
-  );
-  const roof = useMemo(
-    () => buildRoofFromFootprint(footprint.ring, listing.floors),
-    [footprint, listing.floors],
-  );
-  const rooms = useMemo(() => generateInterior(dims, listing), [dims, listing]);
-  const roomEdges = useMemo(() => {
-    const box = new THREE.BoxGeometry(1, 1, 1);
-    const edgesGeo = new THREE.EdgesGeometry(box);
-    box.dispose();
-    return edgesGeo;
-  }, []);
-  const roomMat = useMemo(
-    () => new THREE.LineBasicMaterial({ color: 0xbfe6f5, transparent: true, opacity: 0.3 }),
-    [],
-  );
-
-  useEffect(
-    () => () => {
-      geometry.dispose();
-      edges.dispose();
-      roof.geometry.dispose();
-      roof.edges.dispose();
-      roomEdges.dispose();
-      roomMat.dispose();
-    },
-    [geometry, edges, roof, roomEdges, roomMat],
-  );
-
-  return (
-    <>
-      <mesh geometry={geometry} material={glass} />
-      <lineSegments geometry={edges} material={wire} />
-      <mesh geometry={roof.geometry} material={glass} />
-      <lineSegments geometry={roof.edges} material={wire} />
-      {rooms.map((r, i) => (
-        <group key={i}>
-          <lineSegments geometry={roomEdges} material={roomMat} position={r.pos} scale={r.size} />
-          {furnitureFor(r).map((f, j) => (
-            <mesh key={j} position={f.pos}>
-              <boxGeometry args={f.size} />
-              <meshStandardMaterial
-                color={0xcfecff}
-                emissive={0x6fb4cc}
-                emissiveIntensity={0.4}
-                transparent
-                opacity={0.45}
-              />
-            </mesh>
-          ))}
-        </group>
-      ))}
-    </>
-  );
-}
-
-function House({
-  footprint,
-  listing,
-  dims,
-  modelUrl,
-  onGlbFailed,
-}: {
-  footprint: FootprintResult;
-  listing: Listing;
-  dims: Dims;
-  modelUrl: string | null;
-  onGlbFailed: () => void;
+  mats: ArchMaterials;
 }) {
   const grp = useRef<THREE.Group>(null!);
-  const { glass, wire } = useMemo(() => makeHoloMaterials(), []);
-  const lightRefs = useRef<THREE.PointLight[]>([]);
+  const model = useMemo(
+    () => buildArchModel(footprint.ring, listing.floors),
+    [footprint, listing.floors],
+  );
+  const roofGroup = useXrayRig(mats, model);
+  const xray = useStore((s) => s.xray);
 
   useEffect(() => {
     tourRig.houseGroup = grp.current;
-    tourRig.dims = dims;
-    tourRig.roomLights = lightRefs.current.filter(Boolean);
+    tourRig.dims = model.dims;
+    tourRig.roomLights = [];
     return () => {
       clearTourRig();
-      glass.dispose();
-      wire.dispose();
+      disposeArchModel(model);
     };
-  }, [glass, wire, dims]);
+  }, [model]);
 
-  // bloom-in: the reconstruction materialises
+  // quiet materialise on open — rise + settle, no sci-fi flash
   useEffect(() => {
     const g = grp.current;
     if (!g) return;
-    const tl = gsap.timeline();
-    tl.fromTo(
+    const t1 = gsap.fromTo(
+      g.position,
+      { y: -1.4 },
+      { y: 0, duration: 1.1, ease: 'power3.out', delay: 0.1 },
+    );
+    const t2 = gsap.fromTo(
       g.scale,
-      { x: 0.001, y: 0.001, z: 0.001 },
-      { x: 1, y: 1, z: 1, duration: 0.9, ease: 'power3.out', delay: 0.15 },
-    ).fromTo(
-      glass,
-      { emissiveIntensity: 2.4 },
-      { emissiveIntensity: 0.45, duration: 1.4, ease: 'power2.out' },
-      0.2,
+      { x: 0.92, y: 0.92, z: 0.92 },
+      { x: 1, y: 1, z: 1, duration: 1.2, ease: 'power3.out', delay: 0.1 },
     );
     return () => {
-      tl.kill();
+      t1.kill();
+      t2.kill();
     };
-  }, [glass]);
-
-  // idle rotation — parked while the tour runs
-  useFrame((_, dt) => {
-    if (!useStore.getState().isPlaying && grp.current) {
-      grp.current.rotation.y += dt * 0.1;
-    }
-  });
-
-  const floorLights = useMemo(() => {
-    const fh = dims.height / dims.floors;
-    return Array.from({ length: dims.floors }, (_, f) => ({
-      pos: [0, fh * f + fh * 0.55, 0] as [number, number, number],
-    }));
-  }, [dims]);
-
-  const procedural = (
-    <ProceduralBody footprint={footprint} listing={listing} dims={dims} glass={glass} wire={wire} />
-  );
+  }, []);
 
   return (
     <group ref={grp}>
-      {modelUrl ? (
-        <HoloBoundary fallback={procedural} onError={onGlbFailed}>
-          <Suspense fallback={null}>
-            <GLBBody url={modelUrl} dims={dims} glass={glass} wire={wire} />
-          </Suspense>
-        </HoloBoundary>
-      ) : (
-        procedural
-      )}
-      {floorLights.map((l, i) => (
-        <pointLight
-          key={i}
-          ref={(el) => {
-            if (el) lightRefs.current[i] = el;
-          }}
-          position={l.pos}
-          intensity={0}
-          distance={Math.max(dims.width, dims.depth) * 1.4}
-          color="#FFD98A"
-        />
-      ))}
-      <ScanSweepPlane height={dims.height} span={Math.max(dims.width, dims.depth) * 1.12} />
+      {/* exterior shell */}
+      <mesh geometry={model.wall} material={mats.wall} castShadow receiveShadow renderOrder={2} />
+      <lineSegments geometry={model.wallEdges} material={mats.wallLine} renderOrder={3} />
+      <mesh geometry={model.glazing} material={mats.glazing} renderOrder={1} />
+      {/* interior (revealed in x-ray) */}
+      <mesh geometry={model.slab} material={mats.slab} castShadow receiveShadow />
+      <mesh geometry={model.partition} material={mats.partition} castShadow receiveShadow />
+      {/* roof (lifts in x-ray) */}
+      <group ref={roofGroup}>
+        <mesh geometry={model.roof} material={mats.roof} castShadow receiveShadow renderOrder={2} />
+        <lineSegments geometry={model.roofEdges} material={mats.roofLine} renderOrder={3} />
+      </group>
+      {/* floor tags — only while the section is open */}
+      {xray &&
+        model.slabYs.map((y, i) => (
+          <Html
+            key={i}
+            position={[model.dims.width / 2 + 0.6, y + 0.4, model.dims.depth / 2 + 0.6]}
+            center
+            distanceFactor={Math.max(model.dims.width, model.dims.depth) * 0.9}
+            style={{ pointerEvents: 'none' }}
+          >
+            <div className="floor-tag">L{i + 1}</div>
+          </Html>
+        ))}
     </group>
   );
 }
 
-function Rig({ dims, camPos }: { dims: Dims; camPos: [number, number, number] }) {
+/** Blender-authored model, matte-treated and shadow-casting. */
+function GLBBody({ url, mats, dims }: { url: string; mats: ArchMaterials; dims: { width: number; depth: number } }) {
+  const { scene } = useGLTF(url);
+  const root = useMemo(() => {
+    const r = scene.clone(true);
+    r.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.material = mats.wall;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(r);
+    const size = box.getSize(new THREE.Vector3());
+    const scale = Math.max(dims.width, dims.depth) / Math.max(size.x, size.z, 0.001);
+    r.scale.setScalar(scale);
+    box.setFromObject(r);
+    const c = box.getCenter(new THREE.Vector3());
+    r.position.set(-c.x, -box.min.y, -c.z);
+    return r;
+  }, [scene, mats, dims]);
+  return <primitive object={root} dispose={null} />;
+}
+
+/** Studio lighting, environment, plinth, grounded contact shadow. */
+function Stage({ fit }: { fit: number }) {
+  const keyRef = useRef<THREE.DirectionalLight>(null!);
+  return (
+    <>
+      <color attach="background" args={['#0a0e13']} />
+      <fog attach="fog" args={['#0a0e13', fit * 3.4, fit * 8]} />
+      <hemisphereLight args={['#e6eef8', '#141a22', 0.55]} />
+      <directionalLight
+        ref={keyRef}
+        castShadow
+        position={[fit * 1.4, fit * 2.4, fit * 1.1]}
+        intensity={2.4}
+        color="#eef4ff"
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.03}
+      >
+        <orthographicCamera
+          attach="shadow-camera"
+          args={[-fit * 1.8, fit * 1.8, fit * 1.8, -fit * 1.8, 0.1, fit * 7]}
+        />
+      </directionalLight>
+      {/* warm fill opposite the key so the shadow side never crushes to black */}
+      <directionalLight position={[-fit * 1.8, fit * 1.1, -fit * 1.2]} intensity={0.8} color="#ffd9a8" />
+      {/* cool front bounce for edge separation */}
+      <directionalLight position={[0, fit * 0.4, fit * 2.2]} intensity={0.4} color="#cfe0f2" />
+
+      <Environment resolution={256} frames={1}>
+        <Lightformer intensity={2.2} position={[0, fit * 2, 0]} scale={[fit * 3, fit * 3, 1]} rotation={[Math.PI / 2, 0, 0]} color="#ffffff" />
+        <Lightformer intensity={1.1} position={[-fit * 2, fit, fit * 1.5]} scale={[fit * 2, fit * 2, 1]} color="#dbeaff" />
+        <Lightformer intensity={0.8} position={[fit * 2, fit * 0.6, -fit]} scale={[fit * 2, fit * 2, 1]} color="#ffe6c8" />
+        <Lightformer intensity={1} position={[0, fit * 0.6, -fit * 2.4]} scale={[fit * 3, fit * 1.4, 1]} color="#ffffff" />
+      </Environment>
+
+      {/* plinth — the model sits on a dark scale-model base (top just below y=0) */}
+      <mesh position={[0, -0.26, 0]} receiveShadow>
+        <cylinderGeometry args={[fit * 1.28, fit * 1.34, 0.5, 120]} />
+        <meshStandardMaterial color="#0d1219" roughness={0.72} metalness={0.16} envMapIntensity={0.4} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.008, 0]}>
+        <ringGeometry args={[fit * 1.22, fit * 1.28, 120]} />
+        <meshStandardMaterial color="#20303c" roughness={0.5} metalness={0.35} envMapIntensity={0.9} />
+      </mesh>
+      <ContactShadows
+        position={[0, -0.002, 0]}
+        scale={fit * 3.2}
+        blur={2.4}
+        opacity={0.6}
+        far={fit * 1.6}
+        resolution={1024}
+        color="#04070c"
+      />
+    </>
+  );
+}
+
+function Rig({ dims }: { dims: { width: number; depth: number; height: number } }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
-  const controlsRef = useRef<OrbitControlsImpl>(null);
-  const resetSignal = useStore((s) => s.resetSignal);
+  const controls = useRef<OrbitControlsImpl>(null);
+  const preset = useStore((s) => s.cameraPreset);
+  const reset = useStore((s) => s.resetSignal);
+  const playing = useStore((s) => s.isPlaying);
+  const [transitioning, setTransitioning] = useState(false);
   const fit = Math.max(dims.width, dims.depth, dims.height);
+  const shots = useMemo(() => cameraShots(dims), [dims]);
 
   useEffect(() => {
     tourRig.camera = camera;
-    tourRig.controls = controlsRef.current;
-    controlsRef.current?.saveState();
+    tourRig.controls = controls.current;
   }, [camera]);
 
-  // RESET VIEW — recover the default orbit
-  useEffect(() => {
-    if (resetSignal === 0) return;
-    const c = controlsRef.current;
-    if (!c) return;
-    useStore.getState().setPlaying(false);
-    gsap.to(camera.position, {
-      x: camPos[0],
-      y: camPos[1],
-      z: camPos[2],
-      duration: 1.1,
-      ease: 'power3.inOut',
-      onUpdate: () => c.update(),
-    });
-    gsap.to(c.target, {
-      x: 0,
-      y: dims.height * 0.42,
-      z: 0,
-      duration: 1.1,
-      ease: 'power3.inOut',
-      onUpdate: () => c.update(),
-    });
-  }, [resetSignal, camera, dims.height, fit, camPos]);
+  const moveTo = useMemo(
+    () =>
+      (shot: { pos: [number, number, number]; target: [number, number, number]; fov: number }, dur = 1.35) => {
+        const c = controls.current;
+        if (!c) return;
+        setTransitioning(true);
+        gsap.to(camera.position, {
+          x: shot.pos[0],
+          y: shot.pos[1],
+          z: shot.pos[2],
+          duration: dur,
+          ease: 'power3.inOut',
+          onUpdate: () => c.update(),
+        });
+        gsap.to(c.target, {
+          x: shot.target[0],
+          y: shot.target[1],
+          z: shot.target[2],
+          duration: dur,
+          ease: 'power3.inOut',
+          onUpdate: () => c.update(),
+        });
+        gsap.to(camera, {
+          fov: shot.fov,
+          duration: dur,
+          ease: 'power3.inOut',
+          onUpdate: () => camera.updateProjectionMatrix(),
+          onComplete: () => setTransitioning(false),
+        });
+      },
+    [camera],
+  );
 
+  // preset changes
+  useEffect(() => {
+    moveTo(shots[preset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset]);
+
+  // RESET VIEW
+  useEffect(() => {
+    if (reset === 0) return;
+    useStore.getState().setXray(false);
+    useStore.getState().setPlaying(false);
+    if (preset !== 'hero') useStore.getState().setCameraPreset('hero');
+    else moveTo(shots.hero, 1.1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reset]);
+
+  const autoRotate = preset === 'hero' && !playing && !transitioning;
   return (
     <OrbitControls
-      ref={controlsRef}
+      ref={controls}
       makeDefault
       enablePan={false}
-      minDistance={fit * 0.35}
-      maxDistance={fit * 3.4}
-      maxPolarAngle={Math.PI / 2.02}
-      target={[0, dims.height * 0.42, 0]}
       enableDamping
-      dampingFactor={0.08}
+      dampingFactor={0.06}
+      minDistance={fit * 0.45}
+      maxDistance={fit * 4.2}
+      maxPolarAngle={Math.PI / 2.04}
+      autoRotate={autoRotate}
+      autoRotateSpeed={0.32}
+      target={[0, dims.height * 0.46, 0]}
     />
   );
 }
 
+/** Keeps auto-rotate from fighting a running tour; parks nothing else. */
 export default function HouseHologram({
   footprint,
   listing,
@@ -339,119 +342,53 @@ export default function HouseHologram({
   listing: Listing;
   modelUrl: string | null;
 }) {
-  // a broken GLB flips this so the mesh label stays honest
-  const [glbFailed, setGlbFailed] = useState(false);
-  // envelope straight from the ring — no throwaway geometry
-  const dims = useMemo<Dims>(() => {
+  const [, setGlbFailed] = useState(false);
+  const mats = useMemo(() => makeArchMaterials(), []);
+  useEffect(() => () => mats.dispose(), [mats]);
+
+  const dims = useMemo(() => {
     const xs = footprint.ring.map((p) => p[0]);
     const zs = footprint.ring.map((p) => p[1]);
     return {
       width: Math.max(...xs) - Math.min(...xs),
       depth: Math.max(...zs) - Math.min(...zs),
       height: Math.max(1, listing.floors) * 3.1,
-      floors: Math.max(1, listing.floors),
     };
   }, [footprint, listing.floors]);
   const fit = Math.max(dims.width, dims.depth, dims.height);
-  // tightest field that still contains the house with margin
-  const sphereR = Math.max((Math.hypot(dims.width, dims.depth) / 2) * 1.12, dims.height * 1.15);
-  // portrait screens need a longer default orbit or the house crops hard
-  const aspect =
-    typeof window !== 'undefined' ? window.innerWidth / Math.max(1, window.innerHeight) : 1.6;
-  const zoomOut = aspect < 1 ? 1.55 : aspect < 1.3 ? 1.2 : 1;
-  const camPos: [number, number, number] = [
-    sphereR * 1.75 * zoomOut,
-    sphereR * 1.15 * zoomOut,
-    sphereR * 1.75 * zoomOut,
-  ];
+  const hero = cameraShots({ ...dims }).hero;
+
+  const procedural = <ArchHouse footprint={footprint} listing={listing} mats={mats} />;
 
   return (
     <Canvas
-      camera={{ position: camPos, fov: 45 }}
-      dpr={[1, 2]}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      shadows="soft"
+      dpr={[1, 1.9]}
+      camera={{ position: hero.pos, fov: hero.fov, near: 0.1, far: fit * 12 }}
+      gl={{
+        antialias: true,
+        powerPreference: 'high-performance',
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: 1.05,
+      }}
     >
-      <color attach="background" args={['#0A141D']} />
-      <ambientLight intensity={0.38} />
-      {/* gold emitter overhead — the one warm note in the room */}
-      <pointLight position={[0, sphereR * 2.1, 0]} intensity={1.0} color="#FFD98A" />
-      <pointLight position={[-fit * 2, fit, -fit * 2]} intensity={0.3} color="#A5D8E8" />
+      <Stage fit={fit} />
 
-      <Grid
-        args={[sphereR * 6, sphereR * 6]}
-        cellSize={1.5}
-        sectionSize={7.5}
-        cellColor="#274757"
-        sectionColor="#5F9FB8"
-        fadeDistance={sphereR * 5}
-        fadeStrength={2.2}
-        infiniteGrid
-        position={[0, 0, 0]}
-      />
+      {modelUrl ? (
+        <HoloBoundary fallback={procedural} onError={() => setGlbFailed(true)}>
+          <Suspense fallback={null}>
+            <GLBBody url={modelUrl} mats={mats} dims={dims} />
+          </Suspense>
+        </HoloBoundary>
+      ) : (
+        procedural
+      )}
 
-      <House
-        footprint={footprint}
-        listing={listing}
-        dims={dims}
-        modelUrl={modelUrl}
-        onGlbFailed={() => setGlbFailed(true)}
-      />
-      <ContainmentSphere radius={sphereR} />
-      <DustField radius={sphereR} />
+      <Rig dims={dims} />
 
-      {/* floating HUD panels — control-room screens angled at the operator */}
-      <Html
-        position={[dims.width / 2 + 3.4, dims.height * 0.85, dims.depth * 0.2]}
-        transform
-        occlude={false}
-        distanceFactor={fit * 0.42}
-        rotation={[0, -Math.PI / 8, 0]}
-      >
-        <div className="holo-panel" style={{ minWidth: 250 }}>
-          <div className="holo-panel__title">{listing.address.split(',')[0]}</div>
-          <div>PRICE ${listing.price.toLocaleString()}</div>
-          <div>
-            {listing.beds} BD · {listing.baths} BA · {listing.sqft.toLocaleString()} FT²
-          </div>
-          <div>
-            BUILT {listing.yearBuilt} · {listing.floors} FL · {listing.style.toUpperCase()}
-          </div>
-          <div className="holo-panel__ok">
-            MESH {modelUrl && !glbFailed ? 'BLENDER GLB' : footprint.source.toUpperCase()} · STABLE
-          </div>
-        </div>
-      </Html>
-      <Html
-        position={[-dims.width / 2 - 3.4, dims.height * 0.55, dims.depth * 0.2]}
-        transform
-        occlude={false}
-        distanceFactor={fit * 0.42}
-        rotation={[0, Math.PI / 8, 0]}
-      >
-        <div className="holo-panel" style={{ minWidth: 230 }}>
-          <div className="holo-panel__title">TELEMETRY</div>
-          <div>
-            ENVELOPE {dims.width.toFixed(1)} × {dims.depth.toFixed(1)} × {dims.height.toFixed(1)} M
-          </div>
-          <div>
-            FLOORS {dims.floors} · ROOMS {listing.beds + listing.baths + 1}
-          </div>
-          <div>CONTAINMENT ACTIVE · FIELD {Math.round(sphereR * 10) / 10} M</div>
-          <div className="holo-panel__ok">INTEGRITY 99.7% · DRIFT 0.002</div>
-        </div>
-      </Html>
-
-      <Rig dims={dims} camPos={camPos} />
-
-      <EffectComposer>
-        <Bloom
-          intensity={CONFIG.bloom.intensity}
-          luminanceThreshold={CONFIG.bloom.threshold}
-          luminanceSmoothing={0.7}
-          mipmapBlur
-        />
-        <Noise opacity={0.025} />
-        <Vignette eskil={false} offset={0.24} darkness={0.82} />
+      <EffectComposer multisampling={0}>
+        <SMAA />
+        <Vignette eskil={false} offset={0.28} darkness={0.72} />
       </EffectComposer>
     </Canvas>
   );

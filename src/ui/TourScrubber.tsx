@@ -6,6 +6,9 @@ export default function TourScrubber() {
   const playhead = useStore((s) => s.playhead);
   const isPlaying = useStore((s) => s.isPlaying);
 
+  // only present while a tour is running or mid-scrub
+  if (!isPlaying && playhead < 0.001) return null;
+
   return (
     <div className="scrub-wrap">
       <span

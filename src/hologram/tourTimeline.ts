@@ -1,153 +1,61 @@
 import gsap from 'gsap';
-import type * as THREE from 'three';
 import { tourRig } from './tourRig';
 import { useStore } from '../store/useStore';
+import { cameraShots } from './cameraPresets';
 
-interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
-
-/**
- * The PLAY TOUR cinematic: settle → approach the entry → door swing (GLB) →
- * fly inside → lights ramp room-by-room → interior drift → rise a floor →
- * pull out to the hero angle → glide back to the anchor. Loops seamlessly
- * (every pass starts and ends at the hero anchor).
- */
 let tl: gsap.core.Timeline | null = null;
-let anchor: { pos: Vec3; target: Vec3 } | null = null;
 
 export function getTourTimeline() {
   return tl;
 }
-
 export function killTourTimeline() {
   tl?.kill();
   tl = null;
-  anchor = null;
 }
 
-function collectDoors(root: THREE.Object3D): THREE.Object3D[] {
-  const doors: THREE.Object3D[] = [];
-  root.traverse((o) => {
-    if (o.name.toLowerCase().includes('door') && !o.name.toLowerCase().includes('porch')) {
-      doors.push(o);
-    }
-  });
-  return doors;
-}
-
+/**
+ * A single cinematic pass: settle to the hero, sweep to a low detail corner,
+ * open the section (x-ray), read the exposed floors from a raised angle,
+ * close the section, and return to the hero. Plays once, ends where it began.
+ */
 export function buildTourTimeline(): gsap.core.Timeline | null {
-  const { camera, controls, houseGroup, roomLights, dims } = tourRig;
-  if (!camera || !controls || !houseGroup || !dims) return null;
+  const { camera, controls, dims } = tourRig;
+  if (!camera || !controls || !dims) return null;
   killTourTimeline();
 
+  const shots = cameraShots(dims);
   const fit = Math.max(dims.width, dims.depth, dims.height);
-  const fh = dims.height / dims.floors;
-  const entryZ = dims.depth / 2;
-  const doors = collectDoors(houseGroup);
-
-  anchor = {
-    pos: { x: fit * 1.3, y: fit * 0.95, z: fit * 1.3 },
-    target: { x: 0, y: dims.height * 0.42, z: 0 },
-  };
-
   const upd = () => controls.update();
-  const drift = { a: -Math.PI * 0.12 };
+  const setXray = (v: boolean) => useStore.getState().setXray(v);
 
   const t = gsap.timeline({
     paused: true,
-    repeat: -1,
     defaults: { ease: 'power2.inOut' },
     onUpdate: () => useStore.getState().setPlayhead(t.progress()),
+    onComplete: () => {
+      useStore.getState().setPlaying(false);
+      useStore.getState().setPlayhead(1);
+    },
   });
   tl = t;
 
-  t
-    // settle the idle spin so the entry faces us
-    .to(houseGroup.rotation, { y: 0, duration: 1.0 }, 0)
-    // approach: low + close toward the entry face
-    .to(camera.position, { x: 0, y: dims.height * 0.38, z: entryZ + fit * 0.8, duration: 2.3, onUpdate: upd }, 0.15)
-    .to(controls.target, { x: 0, y: dims.height * 0.3, z: entryZ * 0.4, duration: 2.3, onUpdate: upd }, 0.15);
+  const move = (
+    pos: [number, number, number],
+    tgt: [number, number, number],
+    dur: number,
+  ) => {
+    t.to(camera.position, { x: pos[0], y: pos[1], z: pos[2], duration: dur, onUpdate: upd });
+    t.to(controls.target, { x: tgt[0], y: tgt[1], z: tgt[2], duration: dur, onUpdate: upd }, '<');
+  };
 
-  // door swing (GLB houses that name a door node)
-  for (const d of doors) {
-    t.to(d.rotation, { y: Math.PI / 2.15, duration: 0.9, ease: 'power2.out' }, 2.1);
-  }
-
-  t
-    // cross the threshold
-    .to(camera.position, { x: 0, y: dims.height * 0.3, z: dims.depth * 0.1, duration: 2.1, onUpdate: upd }, 2.7)
-    .to(controls.target, { x: 0, y: dims.height * 0.28, z: -dims.depth * 0.32, duration: 2.1, onUpdate: upd }, 2.7);
-
-  // lights come alive room-by-room (floor by floor)
-  roomLights.forEach((l, i) => {
-    t.to(l, { intensity: 2.4, duration: 0.7, ease: 'power2.out' }, 3.7 + i * 0.55);
-  });
-
-  // interior drift — slow arc around the core
-  t.to(
-    drift,
-    {
-      a: Math.PI * 0.85,
-      duration: 3.4,
-      ease: 'none',
-      onUpdate: () => {
-        camera.position.x = Math.sin(drift.a) * dims.width * 0.24;
-        camera.position.z = Math.cos(drift.a) * dims.depth * 0.24;
-        upd();
-      },
-    },
-    5.0,
-  );
-
-  // rise to the next floor when there is one
-  if (dims.floors > 1) {
-    t.to(camera.position, { y: `+=${fh}`, duration: 1.6, onUpdate: upd }, 7.4).to(
-      controls.target,
-      { y: `+=${fh * 0.8}`, duration: 1.6, onUpdate: upd },
-      7.4,
-    );
-  }
-
-  t
-    // pull out to the hero anchor
-    .to(camera.position, { x: anchor.pos.x, y: anchor.pos.y, z: anchor.pos.z, duration: 2.8, onUpdate: upd }, 9.3)
-    .to(controls.target, { x: anchor.target.x, y: anchor.target.y, z: anchor.target.z, duration: 2.8, onUpdate: upd }, 9.3);
-
-  // lights breathe back down for the next pass
-  roomLights.forEach((l, i) => {
-    t.to(l, { intensity: 0, duration: 1.0, ease: 'power2.in' }, 11.4 + i * 0.12);
-  });
-
-  t.addLabel('end', 12.8);
+  t.call(() => setXray(false));
+  move(shots.hero.pos, shots.hero.target, 1.2); // settle
+  move(shots.detail.pos, shots.detail.target, 3.0); // sweep to a low corner
+  t.call(() => setXray(true)); // open the section
+  move(shots.elevation.pos, shots.elevation.target, 3.0); // read the elevation
+  move([fit * 0.85, fit * 2.3, fit * 0.85], shots.plan.target, 2.8); // raised plan look
+  t.call(() => setXray(false)); // close the section
+  move(shots.hero.pos, shots.hero.target, 3.0); // return home
+  t.to({}, { duration: 0.6 });
   return t;
-}
-
-/** Glide the camera to the loop anchor, then run cb (avoids a loop-seam cut). */
-export function glideToAnchor(cb: () => void) {
-  const { camera, controls } = tourRig;
-  if (!camera || !controls || !anchor) {
-    cb();
-    return;
-  }
-  const dur = 0.85;
-  gsap.to(camera.position, {
-    x: anchor.pos.x,
-    y: anchor.pos.y,
-    z: anchor.pos.z,
-    duration: dur,
-    ease: 'power2.inOut',
-    onUpdate: () => controls.update(),
-  });
-  gsap.to(controls.target, {
-    x: anchor.target.x,
-    y: anchor.target.y,
-    z: anchor.target.z,
-    duration: dur,
-    ease: 'power2.inOut',
-    onUpdate: () => controls.update(),
-    onComplete: cb,
-  });
 }

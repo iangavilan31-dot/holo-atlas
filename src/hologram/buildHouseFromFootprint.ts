@@ -83,8 +83,11 @@ export function buildRoofFromFootprint(ring: LocalRing, floors = 1): RoofBuild {
   const cx = local.reduce((s, p) => s + p[0], 0) / n;
   const cz = local.reduce((s, p) => s + p[1], 0) / n;
   const ridgeScale = 0.34;
+  const eaveScale = 1.07; // overhang past the walls → real eave shadow line
 
-  const eave = local.map(([x, z]) => new THREE.Vector3(x, wallHeight, z));
+  const eave = local.map(
+    ([x, z]) => new THREE.Vector3(cx + (x - cx) * eaveScale, wallHeight, cz + (z - cz) * eaveScale),
+  );
   const ridge = local.map(
     ([x, z]) =>
       new THREE.Vector3(

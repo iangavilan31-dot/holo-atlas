@@ -1,6 +1,7 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import TourController from './TourController';
+import HologramHud from '../ui/HologramHud';
 
 // the whole three/R3F stack loads only when a hologram actually opens
 const HouseHologram = lazy(() => import('./HouseHologram'));
@@ -113,10 +114,31 @@ export default function HologramOverlay() {
             modelUrl={payload.modelUrl}
           />
           <TourController />
+          <ReconHud payload={payload} />
         </Suspense>
       ) : (
         shimmer
       )}
     </div>
+  );
+}
+
+function ReconHud({ payload }: { payload: Payload }) {
+  const dims = useMemo(() => {
+    const xs = payload.footprint.ring.map((p) => p[0]);
+    const zs = payload.footprint.ring.map((p) => p[1]);
+    return {
+      width: Math.max(...xs) - Math.min(...xs),
+      depth: Math.max(...zs) - Math.min(...zs),
+      height: Math.max(1, payload.listing.floors) * 3.1,
+    };
+  }, [payload]);
+  return (
+    <HologramHud
+      listing={payload.listing}
+      footprint={payload.footprint}
+      dims={dims}
+      modelUrl={payload.modelUrl}
+    />
   );
 }

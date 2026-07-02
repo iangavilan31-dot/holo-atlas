@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type Mode = 'MAP' | 'HOLOGRAM';
+export type CameraPreset = 'hero' | 'plan' | 'elevation' | 'detail';
 
 interface State {
   mode: Mode;
@@ -19,6 +20,10 @@ interface State {
   openId: string | null;
   isPlaying: boolean;
   playhead: number;
+  /** X-RAY reveal overlay — exterior goes translucent, interior shown. */
+  xray: boolean;
+  /** Active cinematic camera preset. */
+  cameraPreset: CameraPreset;
   /** Increments to request a camera/timeline reset (RESET VIEW). */
   resetSignal: number;
 
@@ -31,6 +36,9 @@ interface State {
   closeHologram: () => void;
   setPlaying: (b: boolean) => void;
   setPlayhead: (n: number) => void;
+  setXray: (b: boolean) => void;
+  toggleXray: () => void;
+  setCameraPreset: (p: CameraPreset) => void;
   requestReset: () => void;
 }
 
@@ -45,6 +53,8 @@ export const useStore = create<State>((set) => ({
   openId: null,
   isPlaying: false,
   playhead: 0,
+  xray: false,
+  cameraPreset: 'hero',
   resetSignal: 0,
 
   toggleScan: () =>
@@ -57,9 +67,24 @@ export const useStore = create<State>((set) => ({
   setHovered: (hoveredId) => set({ hoveredId }),
   setSelected: (selectedId) => set({ selectedId }),
   openHologram: (id) =>
-    set({ openId: id, selectedId: id, mode: 'HOLOGRAM', isPlaying: false, playhead: 0 }),
-  closeHologram: () => set({ openId: null, mode: 'MAP', isPlaying: false, playhead: 0 }),
+    set({
+      openId: id,
+      selectedId: id,
+      mode: 'HOLOGRAM',
+      isPlaying: false,
+      playhead: 0,
+      xray: false,
+      cameraPreset: 'hero',
+    }),
+  closeHologram: () => set({ openId: null, mode: 'MAP', isPlaying: false, playhead: 0, xray: false }),
   setPlaying: (isPlaying) => set({ isPlaying }),
   setPlayhead: (playhead) => set({ playhead }),
+  setXray: (xray) => set({ xray }),
+  toggleXray: () => set((s) => ({ xray: !s.xray })),
+  setCameraPreset: (cameraPreset) => set({ cameraPreset }),
   requestReset: () => set((s) => ({ resetSignal: s.resetSignal + 1 })),
 }));
+
+if (import.meta.env.DEV) {
+  (window as unknown as { __store?: typeof useStore }).__store = useStore;
+}
