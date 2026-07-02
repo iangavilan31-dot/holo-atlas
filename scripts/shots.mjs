@@ -50,7 +50,7 @@ for (const scenario of scenarios) {
       case 'scan':
         await page.waitForTimeout(6000);
         await clickButton(page, 'SCAN AREA');
-        await page.waitForTimeout(2600); // sweep + pulses visible
+        await page.waitForTimeout(6500); // Overpass (uncached) + sweep + push-in settle
         break;
       case 'hologram':
         await page.waitForTimeout(6000);

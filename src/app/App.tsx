@@ -1,4 +1,6 @@
 import MapView from '../map/MapView';
+import FootprintLayer from '../map/FootprintLayer';
+import ScanSweep from '../map/ScanSweep';
 import TopBar from '../ui/TopBar';
 import ControlDock from '../ui/ControlDock';
 import StatusTicker from '../ui/StatusTicker';
@@ -12,6 +14,8 @@ export default function App() {
   return (
     <div className="scanlines grain relative h-full w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
       <MapView />
+      <FootprintLayer />
+      <ScanSweep />
 
       {hudVisible && mode === 'MAP' && <Reticle />}
       <TopBar />

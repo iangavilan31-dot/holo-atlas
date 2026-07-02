@@ -49,3 +49,19 @@ Strict per-phase review. A phase does not pass below **95/100**.
 **Remaining:** grade may get one more pass in P8 alongside bloom-heavy scenes.
 
 **Score: 96/100** — pass.
+
+---
+
+## P3 — Data layer + house scan/reveal
+
+**Built:** 12 mock listings (`MockListingProvider`), `OSMFootprintProvider` reworked from per-listing queries into **one batched Overpass bbox query** (rate-limit friendly, mirror fallback, nearest-building match ≤45 m with per-building exclusivity), idb cache (v2 schema — old entries without geographic rings refetch), fallback chain OSM → inline shape → rectangle-from-sqft; every footprint carries both a local-meters ring (hologram) and a lng/lat ring (map). `FootprintLayer`: GeoJSON fill + glow line + crisp line + roof-marker circle layers, feature-state hover/selected, rAF breathing pulse, GSAP reveal gate, hover glass tooltip (address/price/specs/mesh source), click → `openHologram`. `ScanSweep`: screen-space light blade synced to SCAN. SCAN also `fitBounds` push-in (max zoom 17.4) so the reveal cluster reads.
+
+**Tested:** Real-click Playwright run: source + 5 layers live, line-opacity ~0.94 at pulse peak, **14 footprint features rendered**, zero console errors/warnings. `tsc -b` clean. Shot verified: full cluster of outlines + markers, OSM shapes visibly irregular vs fallback rectangles.
+
+**Weak:** First shot appeared empty — Overpass (uncached) resolved after the 2.6 s capture; harness wait raised. Some fallback rectangles sit offset from rooftops (listing coords are fictional). Without the push-in the reveal was too small to read.
+
+**Improved:** Batched Overpass (12→1 requests), scan camera push-in, tooltip declares mesh source honestly (OSM/INLINE/EST).
+
+**Remaining:** hover flow gets full real-click coverage with the P4 card rail.
+
+**Score: 95/100** — pass.

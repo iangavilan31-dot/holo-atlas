@@ -201,6 +201,19 @@ body {
   background-size: 34px 34px;
 }
 
+/* scan beam — vertical light blade with trailing haze */
+.scan-beam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, transparent, var(--cyan) 18%, var(--cyan) 82%, transparent);
+  box-shadow:
+    0 0 22px 4px rgba(53, 228, 255, 0.55),
+    -40px 0 80px 10px rgba(53, 228, 255, 0.12);
+  filter: drop-shadow(0 0 12px var(--cyan));
+}
+
 /* maplibre chrome, restyled dark */
 .maplibregl-ctrl-attrib {
   background: rgba(3, 6, 14, 0.55) !important;
