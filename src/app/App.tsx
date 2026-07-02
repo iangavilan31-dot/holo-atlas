@@ -3,6 +3,7 @@ import FootprintLayer from '../map/FootprintLayer';
 import ScanSweep from '../map/ScanSweep';
 import TopBar from '../ui/TopBar';
 import ControlDock from '../ui/ControlDock';
+import ListingRail from '../ui/ListingRail';
 import StatusTicker from '../ui/StatusTicker';
 import Reticle from '../ui/Reticle';
 import { useStore } from '../store/useStore';
@@ -18,6 +19,7 @@ export default function App() {
       <ScanSweep />
 
       {hudVisible && mode === 'MAP' && <Reticle />}
+      {hudVisible && mode === 'MAP' && <ListingRail />}
       <TopBar />
       {hudVisible && <ControlDock />}
       {hudVisible && (

@@ -65,3 +65,17 @@ Strict per-phase review. A phase does not pass below **95/100**.
 **Remaining:** hover flow gets full real-click coverage with the P4 card rail.
 
 **Score: 95/100** — pass.
+
+---
+
+## P4 — Button-based UI controls
+
+**Built:** Full obvious-buttons contract: **SCAN AREA** (primary, pulsing when armed) · **OPEN HOLOGRAM** (enabled after scan; opens selection or the featured 37 Johnson Ave) · **RESET VIEW** (map glide-home; hologram camera+timeline reset in P7) · **CLOSE** (danger accent) · **PLAY TOUR / PAUSE** (hologram dock) · **TOGGLE MAP DETAIL** / **TOGGLE HUD** (top-right, stateful ON/OFF labels; HUD toggle never hides itself). `ListingRail`: post-scan targets rail, glass cards (Rajdhani address, cyan price, mono specs, mesh-source chip), GSAP staggered entrance, hover syncs with map outlines through the shared store, click opens the hologram. No hidden gestures anywhere — every action in the main experience is a labeled button or a labeled card.
+
+**Tested:** `tsc -b` clean; real-click scan run console-clean; shot shows rail + enabled OPEN HOLOGRAM + armed SCAN AREA states.
+
+**Weak:** Only some listings resolve to OSM meshes (fictional demo coords) — honest per-card MESH INLINE/OSM/EST labels. Card-hover→outline-brighten verified by code path (shared store + feature-state), full interactive verification deferred to P9.
+
+**Improved:** OPEN HOLOGRAM never dead after scan — falls back to the featured structure with an explanatory tooltip.
+
+**Score: 95/100** — pass.

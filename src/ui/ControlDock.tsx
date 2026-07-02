@@ -1,4 +1,5 @@
 import { useStore } from '../store/useStore';
+import { CONFIG } from '../config';
 import HButton from './HButton';
 
 /**
@@ -25,9 +26,15 @@ export default function ControlDock() {
             SCAN AREA
           </HButton>
           <HButton
-            disabled={!selectedId}
-            onClick={() => selectedId && openHologram(selectedId)}
-            title={selectedId ? 'Open the selected structure' : 'Select a structure first'}
+            disabled={!scanActive}
+            onClick={() => openHologram(selectedId ?? CONFIG.demoListingId)}
+            title={
+              !scanActive
+                ? 'Run SCAN AREA first'
+                : selectedId
+                  ? 'Open the selected structure'
+                  : `Open the featured structure — ${CONFIG.demoAddress}`
+            }
           >
             OPEN HOLOGRAM
           </HButton>

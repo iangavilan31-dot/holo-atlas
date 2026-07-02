@@ -201,6 +201,63 @@ body {
   background-size: 34px 34px;
 }
 
+/* ---------- listing cards (targets rail) ---------- */
+.listing-card {
+  appearance: none;
+  text-align: left;
+  padding: 10px 12px 9px;
+  background: rgba(3, 6, 14, 0.66);
+  border: 1px solid rgba(53, 228, 255, 0.22);
+  border-left: 2px solid rgba(53, 228, 255, 0.45);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  color: var(--wire);
+  transition:
+    border-color 0.25s var(--ease-holo),
+    background 0.25s var(--ease-holo),
+    box-shadow 0.25s var(--ease-holo),
+    transform 0.25s var(--ease-holo);
+}
+.listing-card:hover,
+.listing-card--hot {
+  border-color: var(--cyan);
+  border-left-color: var(--cyan);
+  background: rgba(53, 228, 255, 0.09);
+  box-shadow: 0 0 20px rgba(53, 228, 255, 0.22);
+  transform: translateX(-3px);
+}
+.listing-card__addr {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: #eafcff;
+}
+.listing-card__price {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--cyan);
+  margin-top: 2px;
+}
+.listing-card__spec {
+  font-family: var(--font-hud);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: rgba(143, 244, 255, 0.75);
+  margin-top: 4px;
+}
+.listing-card__mesh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-hud);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: rgba(143, 244, 255, 0.5);
+  margin-top: 5px;
+}
+
 /* scan beam — vertical light blade with trailing haze */
 .scan-beam {
   position: absolute;

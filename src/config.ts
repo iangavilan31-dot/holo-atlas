@@ -1,5 +1,6 @@
 export const CONFIG = {
   demoAddress: '37 Johnson Avenue, Gooley Cliffs',
+  demoListingId: 'jv-37',
   center: { lng: -73.9701, lat: 40.8901, zoom: 16, pitch: 55, bearing: -20 },
   scan: { activationZoom: 15, sweepMs: 1400 },
   bloom: { intensity: 1.4, threshold: 0.2, radius: 0.7 },
