@@ -79,3 +79,17 @@ Strict per-phase review. A phase does not pass below **95/100**.
 **Improved:** OPEN HOLOGRAM never dead after scan — falls back to the featured structure with an explanatory tooltip.
 
 **Score: 95/100** — pass.
+
+---
+
+## P5 — Hologram stage
+
+**Built:** Full R3F reconstruction bay. `buildHouseFromFootprint` extrudes the real footprint ring (winding-corrected, floor-seated, centered) into holo glass + edge wireframe; `proceduralInterior` partitions rooms per floor from beds/baths with clean shared-unit-box **edge** outlines (not `wireframe:true` — no triangle diagonals) + glowing furniture blocks. `ContainmentSphere`: GLSL fresnel energy shell + slow-rotating wire cage + double floor ring. `DustField` particulate. Per-floor warm room lights mounted dark (tour ramps them in P7). Rising scan-sweep plane. Two angled in-scene HUD panels (drei Html): listing spec + live telemetry computed from the actual envelope. Gold emitter key light + cyan fill. PostFX: Bloom (mipmap) + chromatic aberration + noise + vignette. `HologramOverlay`: map blurs/dims (CSS filter transition), shimmer while footprint resolves, GSAP fade-in, house bloom-in (scale 0.001→1 + emissive flare 2.4→0.45), CLOSE plays fade-out then unmounts the Canvas (full GL disposal + explicit geometry/material `.dispose()`), collapse back to map. `tourRig` registry exposes camera/controls/house/lights to the P7 timeline. RESET VIEW glides the orbit camera home (GSAP, kills tour).
+
+**Tested:** `tsc -b` clean. Real-click flow (SCAN → card click) console-clean. Shots: `hologram.png` (37 Johnson, rectangular, 2 floors) vs `hologram2.png` (39 Johnson, **L-shaped notch clearly visible**, different price/specs/envelope) — two visibly distinct, footprint-true reconstructions matching the containment-sphere reference.
+
+**Weak / fixed en route:** First composition had the camera swallowed by an oversized sphere and a panel clipped off-frame (sphere now sized from the house half-diagonal, camera pulled in, panels moved inside the field); room `wireframe:true` drew triangle diagonals (replaced with EdgesGeometry); glass was over-hot (opacity 0.12→0.07); sweep plane read as a grey slab (span tightened); outer component leaked a throwaway ExtrudeGeometry built only for dims (now computed from the ring).
+
+**Remaining:** PLAY TOUR wiring (P7); bloom-in judged from stills — motion feel checked live in P8/P9.
+
+**Score: 95/100** — pass.

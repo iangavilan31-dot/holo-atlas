@@ -1,6 +1,7 @@
 import MapView from '../map/MapView';
 import FootprintLayer from '../map/FootprintLayer';
 import ScanSweep from '../map/ScanSweep';
+import HologramOverlay from '../hologram/HologramOverlay';
 import TopBar from '../ui/TopBar';
 import ControlDock from '../ui/ControlDock';
 import ListingRail from '../ui/ListingRail';
@@ -14,9 +15,13 @@ export default function App() {
 
   return (
     <div className="scanlines grain relative h-full w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
-      <MapView />
-      <FootprintLayer />
-      <ScanSweep />
+      <div className={`map-stage${mode === 'HOLOGRAM' ? ' map-stage--dimmed' : ''}`}>
+        <MapView />
+        <FootprintLayer />
+        <ScanSweep />
+      </div>
+
+      <HologramOverlay />
 
       {hudVisible && mode === 'MAP' && <Reticle />}
       {hudVisible && mode === 'MAP' && <ListingRail />}

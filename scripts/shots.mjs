@@ -55,9 +55,16 @@ for (const scenario of scenarios) {
       case 'hologram':
         await page.waitForTimeout(6000);
         await clickButton(page, 'SCAN AREA');
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(4500);
         await page.locator('.listing-card').first().click();
         await page.waitForTimeout(3500); // bloom-in + footprint resolve
+        break;
+      case 'hologram2': // L-shaped footprint — proves distinct reconstructions
+        await page.waitForTimeout(6000);
+        await clickButton(page, 'SCAN AREA');
+        await page.waitForTimeout(4500);
+        await page.locator('.listing-card').nth(2).click();
+        await page.waitForTimeout(3500);
         break;
       case 'tour':
         await page.waitForTimeout(6000);

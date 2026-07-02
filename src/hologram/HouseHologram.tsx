@@ -1,0 +1,316 @@
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Grid, Html } from '@react-three/drei';
+import {
+  EffectComposer,
+  Bloom,
+  ChromaticAberration,
+  Noise,
+  Vignette,
+} from '@react-three/postprocessing';
+import { useEffect, useMemo, useRef } from 'react';
+import * as THREE from 'three';
+import gsap from 'gsap';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import { buildHouseFromFootprint, makeHoloMaterials } from './buildHouseFromFootprint';
+import { generateInterior, furnitureFor } from './proceduralInterior';
+import ContainmentSphere from './ContainmentSphere';
+import DustField from './DustField';
+import { tourRig, clearTourRig } from './tourRig';
+import { useStore } from '../store/useStore';
+import { CONFIG } from '../config';
+import type { Listing, FootprintResult } from '../data/types';
+
+function ScanSweepPlane({ height, span }: { height: number; span: number }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  useFrame(({ clock }) => {
+    const t = (clock.getElapsedTime() * 0.35) % 1;
+    ref.current.position.y = t * height;
+    (ref.current.material as THREE.Material).opacity = 0.38 * (1 - Math.abs(t - 0.5) * 2);
+  });
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[span, span]} />
+      <meshBasicMaterial
+        color={0x8ff4ff}
+        transparent
+        opacity={0.3}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+function House({ footprint, listing }: { footprint: FootprintResult; listing: Listing }) {
+  const grp = useRef<THREE.Group>(null!);
+  const { geometry, edges, dims } = useMemo(
+    () => buildHouseFromFootprint(footprint.ring, listing.floors),
+    [footprint, listing.floors],
+  );
+  const { glass, wire } = useMemo(() => makeHoloMaterials(), []);
+  const rooms = useMemo(() => generateInterior(dims, listing), [dims, listing]);
+  const lightRefs = useRef<THREE.PointLight[]>([]);
+  // shared unit-box EDGES (not wireframe — no triangle diagonals), scaled per room
+  const roomEdges = useMemo(() => {
+    const box = new THREE.BoxGeometry(1, 1, 1);
+    const edges = new THREE.EdgesGeometry(box);
+    box.dispose();
+    return edges;
+  }, []);
+  const roomMat = useMemo(
+    () => new THREE.LineBasicMaterial({ color: 0x35e4ff, transparent: true, opacity: 0.32 }),
+    [],
+  );
+
+  // register rig for the tour timeline + explicit GPU disposal
+  useEffect(() => {
+    tourRig.houseGroup = grp.current;
+    tourRig.dims = dims;
+    tourRig.roomLights = lightRefs.current.filter(Boolean);
+    return () => {
+      clearTourRig();
+      geometry.dispose();
+      edges.dispose();
+      glass.dispose();
+      wire.dispose();
+      roomEdges.dispose();
+      roomMat.dispose();
+    };
+  }, [geometry, edges, glass, wire, dims, roomEdges, roomMat]);
+
+  // bloom-in: the house materialises
+  useEffect(() => {
+    const g = grp.current;
+    if (!g) return;
+    const tl = gsap.timeline();
+    tl.fromTo(
+      g.scale,
+      { x: 0.001, y: 0.001, z: 0.001 },
+      { x: 1, y: 1, z: 1, duration: 0.9, ease: 'power3.out', delay: 0.15 },
+    ).fromTo(
+      glass,
+      { emissiveIntensity: 2.4 },
+      { emissiveIntensity: 0.45, duration: 1.4, ease: 'power2.out' },
+      0.2,
+    );
+    return () => {
+      tl.kill();
+    };
+  }, [glass]);
+
+  // idle rotation — parked while the tour runs
+  useFrame((_, dt) => {
+    if (!useStore.getState().isPlaying && grp.current) {
+      grp.current.rotation.y += dt * 0.1;
+    }
+  });
+
+  // one warm room light per floor, off until the tour ramps them
+  const floorLights = useMemo(() => {
+    const fh = dims.height / dims.floors;
+    return Array.from({ length: dims.floors }, (_, f) => ({
+      pos: [0, fh * f + fh * 0.55, 0] as [number, number, number],
+    }));
+  }, [dims]);
+
+  return (
+    <group ref={grp}>
+      <mesh geometry={geometry} material={glass} />
+      <lineSegments geometry={edges} material={wire} />
+      {rooms.map((r, i) => (
+        <group key={i}>
+          <lineSegments geometry={roomEdges} material={roomMat} position={r.pos} scale={r.size} />
+          {furnitureFor(r).map((f, j) => (
+            <mesh key={j} position={f.pos}>
+              <boxGeometry args={f.size} />
+              <meshStandardMaterial
+                color={0x8ff4ff}
+                emissive={0x0ab6d6}
+                emissiveIntensity={0.5}
+                transparent
+                opacity={0.5}
+              />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {floorLights.map((l, i) => (
+        <pointLight
+          key={i}
+          ref={(el) => {
+            if (el) lightRefs.current[i] = el;
+          }}
+          position={l.pos}
+          intensity={0}
+          distance={Math.max(dims.width, dims.depth) * 1.4}
+          color="#FFD98A"
+        />
+      ))}
+      <ScanSweepPlane height={dims.height} span={Math.max(dims.width, dims.depth) * 1.12} />
+    </group>
+  );
+}
+
+function Rig({
+  dims,
+  camPos,
+}: {
+  dims: { width: number; depth: number; height: number };
+  camPos: [number, number, number];
+}) {
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  const controlsRef = useRef<OrbitControlsImpl>(null);
+  const resetSignal = useStore((s) => s.resetSignal);
+  const fit = Math.max(dims.width, dims.depth, dims.height);
+
+  useEffect(() => {
+    tourRig.camera = camera;
+    tourRig.controls = controlsRef.current;
+    controlsRef.current?.saveState();
+  }, [camera]);
+
+  // RESET VIEW — recover the default orbit instantly-smooth
+  useEffect(() => {
+    if (resetSignal === 0) return;
+    const c = controlsRef.current;
+    if (!c) return;
+    useStore.getState().setPlaying(false);
+    gsap.to(camera.position, {
+      x: camPos[0],
+      y: camPos[1],
+      z: camPos[2],
+      duration: 1.1,
+      ease: 'power3.inOut',
+      onUpdate: () => c.update(),
+    });
+    gsap.to(c.target, {
+      x: 0,
+      y: dims.height * 0.42,
+      z: 0,
+      duration: 1.1,
+      ease: 'power3.inOut',
+      onUpdate: () => c.update(),
+    });
+  }, [resetSignal, camera, dims.height, fit, camPos]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      makeDefault
+      enablePan={false}
+      minDistance={fit * 0.35}
+      maxDistance={fit * 3.4}
+      maxPolarAngle={Math.PI / 2.02}
+      target={[0, dims.height * 0.42, 0]}
+      enableDamping
+      dampingFactor={0.08}
+    />
+  );
+}
+
+export default function HouseHologram({
+  footprint,
+  listing,
+}: {
+  footprint: FootprintResult;
+  listing: Listing;
+}) {
+  // envelope straight from the ring — no throwaway geometry
+  const dims = useMemo(() => {
+    const xs = footprint.ring.map((p) => p[0]);
+    const zs = footprint.ring.map((p) => p[1]);
+    return {
+      width: Math.max(...xs) - Math.min(...xs),
+      depth: Math.max(...zs) - Math.min(...zs),
+      height: Math.max(1, listing.floors) * 3.1,
+      floors: Math.max(1, listing.floors),
+    };
+  }, [footprint, listing.floors]);
+  const fit = Math.max(dims.width, dims.depth, dims.height);
+  // tightest field that still contains the house with margin
+  const sphereR = Math.max((Math.hypot(dims.width, dims.depth) / 2) * 1.12, dims.height * 1.15);
+  const camPos: [number, number, number] = [sphereR * 1.75, sphereR * 1.15, sphereR * 1.75];
+
+  return (
+    <Canvas
+      camera={{ position: camPos, fov: 45 }}
+      dpr={[1, 2]}
+      gl={{ antialias: true, powerPreference: 'high-performance' }}
+    >
+      <color attach="background" args={['#04070F']} />
+      <ambientLight intensity={0.35} />
+      {/* gold emitter overhead — the one warm note in the room */}
+      <pointLight position={[0, sphereR * 2.1, 0]} intensity={1.1} color="#FFD98A" />
+      <pointLight position={[-fit * 2, fit, -fit * 2]} intensity={0.35} color="#35E4FF" />
+
+      <Grid
+        args={[sphereR * 6, sphereR * 6]}
+        cellSize={1.5}
+        sectionSize={7.5}
+        cellColor="#0AB6D6"
+        sectionColor="#35E4FF"
+        fadeDistance={sphereR * 5}
+        fadeStrength={2.2}
+        infiniteGrid
+        position={[0, 0, 0]}
+      />
+
+      <House footprint={footprint} listing={listing} />
+      <ContainmentSphere radius={sphereR} />
+      <DustField radius={sphereR} />
+
+      {/* floating HUD panels — control-room screens angled at the operator */}
+      <Html
+        position={[dims.width / 2 + 3.4, dims.height * 0.85, dims.depth * 0.2]}
+        transform
+        occlude={false}
+        distanceFactor={fit * 0.42}
+        rotation={[0, -Math.PI / 8, 0]}
+      >
+        <div className="holo-panel" style={{ minWidth: 250 }}>
+          <div className="holo-panel__title">{listing.address.split(',')[0]}</div>
+          <div>PRICE ${listing.price.toLocaleString()}</div>
+          <div>
+            {listing.beds} BD · {listing.baths} BA · {listing.sqft.toLocaleString()} FT²
+          </div>
+          <div>
+            BUILT {listing.yearBuilt} · {listing.floors} FL · {listing.style.toUpperCase()}
+          </div>
+          <div className="holo-panel__ok">MESH {footprint.source.toUpperCase()} · STABLE</div>
+        </div>
+      </Html>
+      <Html
+        position={[-dims.width / 2 - 3.4, dims.height * 0.55, dims.depth * 0.2]}
+        transform
+        occlude={false}
+        distanceFactor={fit * 0.42}
+        rotation={[0, Math.PI / 8, 0]}
+      >
+        <div className="holo-panel" style={{ minWidth: 230 }}>
+          <div className="holo-panel__title">TELEMETRY</div>
+          <div>
+            ENVELOPE {dims.width.toFixed(1)} × {dims.depth.toFixed(1)} × {dims.height.toFixed(1)} M
+          </div>
+          <div>FLOORS {dims.floors} · ROOMS {listing.beds + listing.baths + 1}</div>
+          <div>CONTAINMENT ACTIVE · FIELD {Math.round(sphereR * 10) / 10} M</div>
+          <div className="holo-panel__ok">INTEGRITY 99.7% · DRIFT 0.002</div>
+        </div>
+      </Html>
+
+      <Rig dims={dims} camPos={camPos} />
+
+      <EffectComposer>
+        <Bloom
+          intensity={CONFIG.bloom.intensity}
+          luminanceThreshold={CONFIG.bloom.threshold}
+          luminanceSmoothing={0.7}
+          mipmapBlur
+        />
+        <ChromaticAberration offset={[0.0006, 0.0006]} />
+        <Noise opacity={0.04} />
+        <Vignette eskil={false} offset={0.25} darkness={0.9} />
+      </EffectComposer>
+    </Canvas>
+  );
+}

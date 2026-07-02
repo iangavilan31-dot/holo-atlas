@@ -201,6 +201,26 @@ body {
   background-size: 34px 34px;
 }
 
+/* hologram loading shimmer */
+.holo-loading__fill {
+  animation: holo-load 1.4s var(--ease-holo) infinite;
+}
+@keyframes holo-load {
+  0% { right: 100%; }
+  60% { right: 12%; }
+  100% { right: 0%; opacity: 0; }
+}
+
+/* the map dims + blurs while the reconstruction bay is up */
+.map-stage {
+  position: absolute;
+  inset: 0;
+  transition: filter 0.7s var(--ease-holo);
+}
+.map-stage--dimmed {
+  filter: blur(14px) brightness(0.45) saturate(0.8);
+}
+
 /* ---------- listing cards (targets rail) ---------- */
 .listing-card {
   appearance: none;
