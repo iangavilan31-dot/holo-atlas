@@ -1,7 +1,13 @@
 import gsap from 'gsap';
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import { tourRig } from './tourRig';
 import { useStore } from '../store/useStore';
+
+interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 /**
  * The PLAY TOUR cinematic: settle → approach the entry → door swing (GLB) →
@@ -10,7 +16,7 @@ import { useStore } from '../store/useStore';
  * (every pass starts and ends at the hero anchor).
  */
 let tl: gsap.core.Timeline | null = null;
-let anchor: { pos: THREE.Vector3; target: THREE.Vector3 } | null = null;
+let anchor: { pos: Vec3; target: Vec3 } | null = null;
 
 export function getTourTimeline() {
   return tl;
@@ -43,8 +49,8 @@ export function buildTourTimeline(): gsap.core.Timeline | null {
   const doors = collectDoors(houseGroup);
 
   anchor = {
-    pos: new THREE.Vector3(fit * 1.3, fit * 0.95, fit * 1.3),
-    target: new THREE.Vector3(0, dims.height * 0.42, 0),
+    pos: { x: fit * 1.3, y: fit * 0.95, z: fit * 1.3 },
+    target: { x: 0, y: dims.height * 0.42, z: 0 },
   };
 
   const upd = () => controls.update();

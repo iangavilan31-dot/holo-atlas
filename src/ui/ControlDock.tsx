@@ -19,7 +19,7 @@ export default function ControlDock() {
   const requestReset = useStore((s) => s.requestReset);
 
   return (
-    <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-40 flex gap-3 items-center">
+    <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-40 flex gap-3 items-center flex-wrap justify-center max-w-[92vw]">
       {mode === 'MAP' ? (
         <>
           <HButton primary on={scanActive} dot onClick={toggleScan}>

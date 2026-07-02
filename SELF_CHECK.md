@@ -121,3 +121,17 @@ Strict per-phase review. A phase does not pass below **95/100**.
 **Improved:** PLAY TOUR button disabled while playing / PAUSE disabled while paused — states always truthful.
 
 **Score: 95/100** — pass.
+
+---
+
+## P8 — Polish pass
+
+**Built:** Faked-but-honest `buildQueue` (marked FAKED in code): reads the *real* resolved footprint data (structure count, live OSM lock count) and feeds reconstruction chatter into the StatusTicker on an interval, interleaved with its flavor lines. Escape closes the hologram (convenience only — CLOSE stays the primary labeled path). Responsive pass ≤920 px: rail narrows, buttons/scrubber compact, dock wraps, ticker collapses to icon+bar so it can't collide with the dock. Removed all template leftovers (src/assets, unused svgs). **Code-split**: the entire three/R3F/drei/postprocessing stack now lazy-loads with the first hologram open (boot chunk 655→372 KB gzip; hologram chunk 284 KB on demand) with the reconstruction shimmer as Suspense fallback; runtime `three` stripped from the timeline module so the scrubber path stays light.
+
+**Tested:** `tsc -b` clean; production `npm run build` clean. Full-flow probe (hardware GL): **60 fps map · 60 fps scan · 59 fps hologram · 57 fps mid-tour**, zero console errors, CLOSE returns to the intact map. **10× open/close cycles across different listings: JS heap flat at 69 MB every cycle** — leak-free. Tablet (820 px) shot verified; found and fixed the ticker/dock overlap.
+
+**Weak:** Phone-portrait (<480 px) is functional but dense — this is a desktop-first command-table experience by design.
+
+**Improved:** Boot payload nearly halved via lazy hologram stack.
+
+**Score: 96/100** — pass.

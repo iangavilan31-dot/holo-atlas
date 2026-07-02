@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import HouseHologram from './HouseHologram';
 import TourController from './TourController';
+
+// the whole three/R3F stack loads only when a hologram actually opens
+const HouseHologram = lazy(() => import('./HouseHologram'));
 import { getListing, getFootprint, loadAtlas } from '../data/atlasData';
 import { getModelUrl } from '../data/modelManifest';
 import { useStore } from '../store/useStore';
@@ -23,6 +25,16 @@ export default function HologramOverlay() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [payload, setPayload] = useState<Payload | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Escape = CLOSE (convenience only — the labeled button is the primary path)
+  useEffect(() => {
+    if (!openId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') useStore.getState().closeHologram();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openId]);
 
   // open: retain id locally, resolve data, fade in
   useEffect(() => {
@@ -73,6 +85,20 @@ export default function HologramOverlay() {
 
   if (!activeId) return null;
 
+  const shimmer = (
+    <div className="h-full w-full flex flex-col items-center justify-center gap-4">
+      <div
+        className="text-[13px] tracking-[0.3em] uppercase"
+        style={{ fontFamily: 'var(--font-hud)', color: 'var(--wire)' }}
+      >
+        RECONSTRUCTING {getListing(activeId)?.address ?? 'STRUCTURE'}
+      </div>
+      <div className="ticker__bar" style={{ width: 220 }}>
+        <div className="ticker__fill holo-loading__fill" />
+      </div>
+    </div>
+  );
+
   return (
     <div
       ref={wrapRef}
@@ -80,26 +106,16 @@ export default function HologramOverlay() {
       style={{ background: '#04070F', opacity: 0 }}
     >
       {payload ? (
-        <>
+        <Suspense fallback={shimmer}>
           <HouseHologram
             listing={payload.listing}
             footprint={payload.footprint}
             modelUrl={payload.modelUrl}
           />
           <TourController />
-        </>
+        </Suspense>
       ) : (
-        <div className="h-full w-full flex flex-col items-center justify-center gap-4">
-          <div
-            className="text-[13px] tracking-[0.3em] uppercase"
-            style={{ fontFamily: 'var(--font-hud)', color: 'var(--wire)' }}
-          >
-            RECONSTRUCTING {getListing(activeId)?.address ?? 'STRUCTURE'}
-          </div>
-          <div className="ticker__bar" style={{ width: 220 }}>
-            <div className="ticker__fill holo-loading__fill" />
-          </div>
-        </div>
+        shimmer
       )}
     </div>
   );

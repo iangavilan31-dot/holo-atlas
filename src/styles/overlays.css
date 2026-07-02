@@ -341,5 +341,28 @@ body {
   outline: none;
 }
 
+/* ---------- responsive: tablets / narrow ---------- */
+@media (max-width: 920px) {
+  .tour-scrub {
+    width: 200px;
+  }
+  /* keep the dock clear: ticker collapses to icon + bar */
+  .ticker__label {
+    display: none;
+  }
+  .ticker__bar {
+    width: 70px;
+  }
+  .holo-panel {
+    min-width: 180px;
+    font-size: 11px;
+  }
+  .hbtn {
+    padding: 8px 12px 7px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+  }
+}
+
 /* ---------- scrollbars ---------- */
 * { scrollbar-width: thin; scrollbar-color: rgba(53, 228, 255, 0.35) transparent; }

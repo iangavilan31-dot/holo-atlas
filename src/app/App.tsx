@@ -9,10 +9,16 @@ import TourScrubber from '../ui/TourScrubber';
 import StatusTicker from '../ui/StatusTicker';
 import Reticle from '../ui/Reticle';
 import { useStore } from '../store/useStore';
+import { startBuildQueue } from '../worker/buildQueue';
+import { useEffect } from 'react';
 
 export default function App() {
   const hudVisible = useStore((s) => s.hudVisible);
   const mode = useStore((s) => s.mode);
+
+  useEffect(() => {
+    startBuildQueue();
+  }, []);
 
   return (
     <div className="scanlines grain relative h-full w-full overflow-hidden" style={{ background: 'var(--bg)' }}>

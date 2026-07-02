@@ -37,7 +37,7 @@ export default function ListingRail() {
   return (
     <div
       ref={railRef}
-      className="absolute right-5 top-24 bottom-24 z-40 w-[268px] overflow-y-auto pr-1 flex flex-col gap-2"
+      className="absolute right-5 top-24 bottom-24 z-40 w-[268px] max-[920px]:w-[212px] overflow-y-auto pr-1 flex flex-col gap-2"
     >
       <div
         className="text-[10px] tracking-[0.3em] uppercase mb-1 pl-1"
