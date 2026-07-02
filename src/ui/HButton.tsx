@@ -8,7 +8,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-/** Instrument-grade control: uppercase Rajdhani, hairline cyan glass. */
+/** Chunky poster control: uppercase Outfit on frosted glass; primary = solid white. */
 export default function HButton({ on, primary, danger, dot, children, className, ...rest }: Props) {
   const cls = [
     'hbtn',

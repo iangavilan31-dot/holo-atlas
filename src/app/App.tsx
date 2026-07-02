@@ -7,7 +7,6 @@ import ControlDock from '../ui/ControlDock';
 import ListingRail from '../ui/ListingRail';
 import TourScrubber from '../ui/TourScrubber';
 import StatusTicker from '../ui/StatusTicker';
-import Reticle from '../ui/Reticle';
 import { useStore } from '../store/useStore';
 import { startBuildQueue } from '../worker/buildQueue';
 import { useEffect } from 'react';
@@ -21,7 +20,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="scanlines grain relative h-full w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
+    <div className="relative h-full w-full overflow-hidden" style={{ background: 'var(--bg)' }}>
       <div className={`map-stage${mode === 'HOLOGRAM' ? ' map-stage--dimmed' : ''}`}>
         <MapView />
         <FootprintLayer />
@@ -30,7 +29,6 @@ export default function App() {
 
       <HologramOverlay />
 
-      {hudVisible && mode === 'MAP' && <Reticle />}
       {hudVisible && mode === 'MAP' && <ListingRail />}
       <TopBar />
       {hudVisible && <ControlDock />}

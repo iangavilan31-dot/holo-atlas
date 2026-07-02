@@ -1,17 +1,21 @@
 :root {
-  --bg: #03060e;
-  --bg-glass: rgba(3, 6, 14, 0.72);
-  --cyan: #35e4ff;
-  --cyan-deep: #0ab6d6;
-  --wire: #8ff4ff;
-  --holo-fill: rgba(53, 228, 255, 0.1);
-  --amber: #ffb020;
-  --red: #ff4d4d;
-  --gold: #ffd98a;
-  --grid-line: rgba(255, 255, 255, 0.12);
-  --hairline: rgba(53, 228, 255, 0.35);
-  --font-display: 'Rajdhani', sans-serif;
-  --font-body: 'Space Grotesk', sans-serif;
-  --font-hud: 'Share Tech Mono', monospace;
+  /* poster identity: light blue + white + ink, frosted glass over a dark table */
+  --bg: #0a141d;
+  --sky: #a5d8e8;
+  --sky-deep: #6fb4cc;
+  --ice: #dff3fa;
+  --ink: #0e3a50;
+  --ink-soft: rgba(14, 58, 80, 0.64);
+  --glass-light: rgba(255, 255, 255, 0.9);
+  --glass-trans: rgba(255, 255, 255, 0.1);
+  --hairline: rgba(255, 255, 255, 0.32);
+  --shadow-soft: 0 10px 30px rgba(4, 12, 18, 0.4);
+  --font-display: 'Outfit', sans-serif;
+  --font-ui: 'Outfit', sans-serif;
   --ease-holo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* legacy aliases still referenced by a few inline styles */
+  --cyan: var(--sky);
+  --wire: var(--ice);
+  --font-hud: 'Outfit', sans-serif;
 }

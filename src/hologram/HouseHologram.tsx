@@ -1,12 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Html, useGLTF } from '@react-three/drei';
-import {
-  EffectComposer,
-  Bloom,
-  ChromaticAberration,
-  Noise,
-  Vignette,
-} from '@react-three/postprocessing';
+import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing';
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -32,13 +26,13 @@ function ScanSweepPlane({ height, span }: { height: number; span: number }) {
   useFrame(({ clock }) => {
     const t = (clock.getElapsedTime() * 0.35) % 1;
     ref.current.position.y = t * height;
-    (ref.current.material as THREE.Material).opacity = 0.38 * (1 - Math.abs(t - 0.5) * 2);
+    (ref.current.material as THREE.Material).opacity = 0.16 * (1 - Math.abs(t - 0.5) * 2);
   });
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[span, span]} />
       <meshBasicMaterial
-        color={0x8ff4ff}
+        color={0xeaf7fd}
         transparent
         opacity={0.3}
         blending={THREE.AdditiveBlending}
@@ -140,7 +134,7 @@ function ProceduralBody({
     return edgesGeo;
   }, []);
   const roomMat = useMemo(
-    () => new THREE.LineBasicMaterial({ color: 0x35e4ff, transparent: true, opacity: 0.32 }),
+    () => new THREE.LineBasicMaterial({ color: 0xbfe6f5, transparent: true, opacity: 0.3 }),
     [],
   );
 
@@ -165,11 +159,11 @@ function ProceduralBody({
             <mesh key={j} position={f.pos}>
               <boxGeometry args={f.size} />
               <meshStandardMaterial
-                color={0x8ff4ff}
-                emissive={0x0ab6d6}
-                emissiveIntensity={0.5}
+                color={0xcfecff}
+                emissive={0x6fb4cc}
+                emissiveIntensity={0.4}
                 transparent
-                opacity={0.5}
+                opacity={0.45}
               />
             </mesh>
           ))}
@@ -357,18 +351,18 @@ export default function HouseHologram({
       dpr={[1, 2]}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
     >
-      <color attach="background" args={['#04070F']} />
-      <ambientLight intensity={0.35} />
+      <color attach="background" args={['#0A141D']} />
+      <ambientLight intensity={0.38} />
       {/* gold emitter overhead — the one warm note in the room */}
-      <pointLight position={[0, sphereR * 2.1, 0]} intensity={1.1} color="#FFD98A" />
-      <pointLight position={[-fit * 2, fit, -fit * 2]} intensity={0.35} color="#35E4FF" />
+      <pointLight position={[0, sphereR * 2.1, 0]} intensity={1.0} color="#FFD98A" />
+      <pointLight position={[-fit * 2, fit, -fit * 2]} intensity={0.3} color="#A5D8E8" />
 
       <Grid
         args={[sphereR * 6, sphereR * 6]}
         cellSize={1.5}
         sectionSize={7.5}
-        cellColor="#0AB6D6"
-        sectionColor="#35E4FF"
+        cellColor="#274757"
+        sectionColor="#5F9FB8"
         fadeDistance={sphereR * 5}
         fadeStrength={2.2}
         infiniteGrid
@@ -436,9 +430,8 @@ export default function HouseHologram({
           luminanceSmoothing={0.7}
           mipmapBlur
         />
-        <ChromaticAberration offset={[0.0006, 0.0006]} />
-        <Noise opacity={0.04} />
-        <Vignette eskil={false} offset={0.25} darkness={0.9} />
+        <Noise opacity={0.025} />
+        <Vignette eskil={false} offset={0.24} darkness={0.82} />
       </EffectComposer>
     </Canvas>
   );

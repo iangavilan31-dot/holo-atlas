@@ -66,7 +66,6 @@ export default function StatusTicker() {
 
   return (
     <div className="ticker" role="status">
-      <span style={{ color: 'var(--cyan)' }}>◈</span>
       <div className="ticker__bar">
         <div ref={fillRef} className="ticker__fill" />
       </div>

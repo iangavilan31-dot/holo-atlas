@@ -88,10 +88,10 @@ export default function HologramOverlay() {
   const shimmer = (
     <div className="h-full w-full flex flex-col items-center justify-center gap-4">
       <div
-        className="text-[13px] tracking-[0.3em] uppercase"
-        style={{ fontFamily: 'var(--font-hud)', color: 'var(--wire)' }}
+        className="text-[15px] font-extrabold uppercase tracking-[0.06em] text-white"
+        style={{ fontFamily: 'var(--font-display)' }}
       >
-        RECONSTRUCTING {getListing(activeId)?.address ?? 'STRUCTURE'}
+        Reconstructing {getListing(activeId)?.address ?? 'structure'}
       </div>
       <div className="ticker__bar" style={{ width: 220 }}>
         <div className="ticker__fill holo-loading__fill" />
@@ -103,7 +103,7 @@ export default function HologramOverlay() {
     <div
       ref={wrapRef}
       className="absolute inset-0 z-30"
-      style={{ background: '#04070F', opacity: 0 }}
+      style={{ background: '#0A141D', opacity: 0 }}
     >
       {payload ? (
         <Suspense fallback={shimmer}>

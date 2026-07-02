@@ -50,16 +50,16 @@ export function buildHouseFromFootprint(ring: LocalRing, floors = 1): HouseBuild
 
 export function makeHoloMaterials() {
   const glass = new THREE.MeshStandardMaterial({
-    color: 0x35e4ff,
+    color: 0x9fd3ea,
     transparent: true,
-    opacity: 0.07,
-    emissive: 0x0ab6d6,
-    emissiveIntensity: 0.45,
+    opacity: 0.08,
+    emissive: 0x5fa8c6,
+    emissiveIntensity: 0.4,
     metalness: 0.1,
     roughness: 0.4,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
-  const wire = new THREE.LineBasicMaterial({ color: 0x8ff4ff, transparent: true, opacity: 0.9 });
+  const wire = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
   return { glass, wire };
 }

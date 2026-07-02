@@ -36,9 +36,9 @@ export default function ContainmentSphere({ radius }: { radius: number }) {
         vertexShader: fresnelVert,
         fragmentShader: fresnelFrag,
         uniforms: {
-          uColor: { value: new THREE.Color('#35E4FF') },
-          uPower: { value: 3.0 },
-          uIntensity: { value: 0.55 },
+          uColor: { value: new THREE.Color('#A5D8E8') },
+          uPower: { value: 3.2 },
+          uIntensity: { value: 0.42 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -64,10 +64,10 @@ export default function ContainmentSphere({ radius }: { radius: number }) {
       <mesh ref={cageRef} position={[0, y, 0]}>
         <sphereGeometry args={[radius * 1.002, 36, 18]} />
         <meshBasicMaterial
-          color="#0AB6D6"
+          color="#6FB4CC"
           wireframe
           transparent
-          opacity={0.035}
+          opacity={0.03}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
@@ -76,9 +76,9 @@ export default function ContainmentSphere({ radius }: { radius: number }) {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <ringGeometry args={[radius * 0.94, radius * 0.965, 96]} />
         <meshBasicMaterial
-          color="#35E4FF"
+          color="#DFF3FA"
           transparent
-          opacity={0.5}
+          opacity={0.42}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}
@@ -87,9 +87,9 @@ export default function ContainmentSphere({ radius }: { radius: number }) {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
         <ringGeometry args={[radius * 0.99, radius * 1.0, 96]} />
         <meshBasicMaterial
-          color="#0AB6D6"
+          color="#6FB4CC"
           transparent
-          opacity={0.22}
+          opacity={0.2}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}

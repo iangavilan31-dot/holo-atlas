@@ -59,8 +59,8 @@ function addLayers(map: MLMap) {
     source: SRC_FP,
     layout: { visibility: 'none' },
     paint: {
-      'fill-color': '#35E4FF',
-      'fill-opacity': ['case', hoverBool, 0.22, selBool, 0.14, 0.05] as never,
+      'fill-color': '#DFF3FA',
+      'fill-opacity': ['case', hoverBool, 0.24, selBool, 0.15, 0.05] as never,
     },
   });
   map.addLayer({
@@ -68,7 +68,7 @@ function addLayers(map: MLMap) {
     type: 'line',
     source: SRC_FP,
     layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': '#35E4FF', 'line-width': 7, 'line-blur': 5, 'line-opacity': 0 },
+    paint: { 'line-color': '#A5D8E8', 'line-width': 7, 'line-blur': 5, 'line-opacity': 0 },
   });
   map.addLayer({
     id: 'fp-line',
@@ -76,8 +76,8 @@ function addLayers(map: MLMap) {
     source: SRC_FP,
     layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
     paint: {
-      'line-color': ['case', hoverBool, '#B9FAFF', selBool, '#8FF4FF', '#35E4FF'] as never,
-      'line-width': ['case', hoverBool, 3, selBool, 2.5, 1.8] as never,
+      'line-color': ['case', hoverBool, '#FFFFFF', selBool, '#FFFFFF', '#E9F7FD'] as never,
+      'line-width': ['case', hoverBool, 3.2, selBool, 2.6, 2] as never,
       'line-opacity': 0,
     },
   });
@@ -87,7 +87,7 @@ function addLayers(map: MLMap) {
     source: SRC_PT,
     layout: { visibility: 'none' },
     paint: {
-      'circle-color': '#35E4FF',
+      'circle-color': '#A5D8E8',
       'circle-radius': 9,
       'circle-blur': 1,
       'circle-opacity': 0,
@@ -99,10 +99,10 @@ function addLayers(map: MLMap) {
     source: SRC_PT,
     layout: { visibility: 'none' },
     paint: {
-      'circle-color': '#D8FBFF',
+      'circle-color': '#FFFFFF',
       'circle-radius': ['case', hoverBool, 4.5, 3] as never,
-      'circle-stroke-color': '#35E4FF',
-      'circle-stroke-width': 1,
+      'circle-stroke-color': '#A5D8E8',
+      'circle-stroke-width': 1.2,
       'circle-opacity': 0,
       'circle-stroke-opacity': 0,
     },

@@ -15,17 +15,14 @@ export default function TopBar() {
       style={{ fontFamily: 'var(--font-display)' }}
     >
       <div className="pointer-events-auto">
-        <div
-          className="text-[19px] font-bold tracking-[0.28em] text-[#EAFCFF] leading-none"
-          style={{ textShadow: '0 0 18px rgba(53,228,255,0.45)' }}
-        >
-          SPYGLASS <span className="text-[color:var(--cyan)]">·</span> HOLO-ATLAS
+        <div className="text-[24px] font-black leading-none text-white">
+          SPYGLASS<span style={{ color: 'var(--sky)' }}> ATLAS</span>
         </div>
         <div
-          className="mt-1.5 text-[11px] tracking-[0.22em] uppercase"
-          style={{ fontFamily: 'var(--font-hud)', color: 'rgba(143,244,255,0.6)' }}
+          className="mt-1.5 text-[12px] font-semibold uppercase tracking-[0.08em]"
+          style={{ color: 'rgba(255,255,255,0.55)' }}
         >
-          {mode === 'MAP' ? `SECTOR // ${CONFIG.demoAddress}` : 'RECONSTRUCTION BAY // ACTIVE'}
+          {mode === 'MAP' ? `Sector — ${CONFIG.demoAddress}` : 'Reconstruction bay — active'}
         </div>
       </div>
 

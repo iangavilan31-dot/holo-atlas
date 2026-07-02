@@ -40,10 +40,10 @@ export default function ListingRail() {
       className="absolute right-5 top-24 bottom-24 z-40 w-[268px] max-[920px]:w-[212px] overflow-y-auto pr-1 flex flex-col gap-2"
     >
       <div
-        className="text-[10px] tracking-[0.3em] uppercase mb-1 pl-1"
-        style={{ fontFamily: 'var(--font-hud)', color: 'rgba(143,244,255,0.55)' }}
+        className="text-[13px] font-black uppercase tracking-[0.06em] mb-1 pl-1 text-white"
+        style={{ fontFamily: 'var(--font-display)' }}
       >
-        STRUCTURES // {atlas.listings.length} LOCKED
+        Structures — {atlas.listings.length} locked
       </div>
       {atlas.listings.map((l) => {
         const src = atlas.footprints.get(l.id)?.source;

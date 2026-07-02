@@ -164,3 +164,13 @@ Interactive probe (real mouse, hardware GL):
 | Memory stable across 10 open/close cycles | ✓ flat 69 MB |
 
 **Final score: 96/100** — pass. The remaining 4: phone-portrait density, GLB houses tour an empty interior (by design until authors ship interiors), and one dev-console error if a manifest entry points at a missing file (recovers visually).
+
+---
+
+## R1 — Identity reskin (Ian's direction: kill the cyan-HUD "AI slop")
+
+**Changed:** Full UI pivot to the poster identity — **Outfit 800/900 chunky white lettering, light-blue (#A5D8E8) accents, ink (#0E3A50) text on frosted white translucent glass**. Removed wholesale: scanline + grain overlays, dotted reticle, ◈ glyphs, mono-HUD microtype, neon borders/glow shadows, chromatic aberration. Buttons are now chunky poster controls (primary = solid white with ink type, engaged = sky fill); cards and data panels are frosted white glass with ink type; wordmark is SPYGLASS (white 900) ATLAS (sky). Map grade cooled from neon teal to steel; footprint outlines white/ice; the 3D scene re-tinted (white wireframes, ice fresnel sphere, softer bloom 1.4→0.85, threshold 0.28); scan-sweep plane tamed (read as a paper slab in white). Fonts consolidated to a single family — no sci-fi font pairing.
+
+**Tested:** `tsc` + production build clean; real-click flow probe: 61 fps map, 56 fps hologram, CLOSE intact, zero console errors. Shots re-verified: scan (white outlines + frosted rail), hologram (white wireframe house in ice sphere, ink-type panels), mid-tour.
+
+**Score: 96/100** — pass.

@@ -1,9 +1,11 @@
 # SPYGLASS · HOLO-ATLAS
 
-A luxury sci-fi map table. A graded satellite city, a **SCAN AREA** button that outlines
-every available house with pulsing cyan footprints, and a click that blooms any of them
-into a full 3D holographic reconstruction — containment sphere, HUD panels, and a
-cinematic **PLAY TOUR** that flies inside, ramps the room lights, and swings the door open.
+A luxury sci-fi map table with a clean poster identity — chunky white lettering,
+light-blue accents, frosted translucent glass. A graded satellite city, a **SCAN AREA**
+button that outlines every available house with pulsing ice-white footprints, and a click
+that blooms any of them into a full 3D reconstruction — containment sphere, glass data
+panels, and a cinematic **PLAY TOUR** that flies inside, ramps the room lights, and
+swings the door open.
 
 Vite · React 19 · TypeScript · MapLibre GL · React Three Fiber · drei · postprocessing · GSAP · Tailwind · Zustand · idb.
 

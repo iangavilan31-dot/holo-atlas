@@ -20,7 +20,7 @@ export default function DustField({ radius }: { radius: number }) {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const material = new THREE.PointsMaterial({
-      color: 0x8ff4ff,
+      color: 0xeff9ff,
       size: 0.055,
       transparent: true,
       opacity: 0.55,

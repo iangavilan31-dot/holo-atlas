@@ -4,16 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#03060E',
-        holo: { DEFAULT: '#35E4FF', deep: '#0AB6D6', wire: '#8FF4FF' },
-        amber: '#FFB020',
-        alarm: '#FF4D4D',
-        gold: '#FFD98A',
+        bg: '#0A141D',
+        sky: { DEFAULT: '#A5D8E8', deep: '#6FB4CC' },
+        ice: '#DFF3FA',
+        ink: '#0E3A50',
       },
       fontFamily: {
-        display: ['Rajdhani', 'sans-serif'],
-        body: ['"Space Grotesk"', 'sans-serif'],
-        hud: ['"Share Tech Mono"', 'monospace'],
+        display: ['Outfit', 'sans-serif'],
+        body: ['Outfit', 'sans-serif'],
       },
     },
   },

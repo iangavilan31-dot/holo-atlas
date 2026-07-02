@@ -3,7 +3,7 @@ export const CONFIG = {
   demoListingId: 'jv-37',
   center: { lng: -73.9701, lat: 40.8901, zoom: 16, pitch: 55, bearing: -20 },
   scan: { activationZoom: 15, sweepMs: 1400 },
-  bloom: { intensity: 1.4, threshold: 0.2, radius: 0.7 },
+  bloom: { intensity: 0.85, threshold: 0.28, radius: 0.7 },
   // Free, keyless satellite imagery (Esri World Imagery, attribution required).
   satelliteTiles:
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',

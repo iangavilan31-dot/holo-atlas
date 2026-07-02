@@ -9,8 +9,8 @@ export default function TourScrubber() {
   return (
     <div className="absolute bottom-[74px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
       <span
-        className="text-[9px] tracking-[0.28em] uppercase"
-        style={{ fontFamily: 'var(--font-hud)', color: 'rgba(143,244,255,0.55)' }}
+        className="text-[11px] font-extrabold tracking-[0.1em] uppercase"
+        style={{ fontFamily: 'var(--font-display)', color: 'rgba(255,255,255,0.7)' }}
       >
         TOUR
       </span>
@@ -24,8 +24,11 @@ export default function TourScrubber() {
         aria-label="Tour timeline"
       />
       <span
-        className="text-[9px] tracking-[0.2em] w-[42px]"
-        style={{ fontFamily: 'var(--font-hud)', color: isPlaying ? 'var(--cyan)' : 'rgba(143,244,255,0.55)' }}
+        className="text-[11px] font-extrabold w-[42px]"
+        style={{
+          fontFamily: 'var(--font-display)',
+          color: isPlaying ? 'var(--sky)' : 'rgba(255,255,255,0.7)',
+        }}
       >
         {(playhead * 100).toFixed(0).padStart(2, '0')}%
       </span>

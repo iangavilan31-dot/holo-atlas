@@ -70,12 +70,10 @@ export default function MapView() {
       {/* inline position: maplibre-gl.css sets .maplibregl-map{position:relative} which
           loads after Tailwind and would collapse the container to 0 height */}
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
-      {/* cinematic grade: cyan-steel cast over the desaturated imagery */}
+      {/* cool steel grade over the desaturated imagery */}
       <div className="map-grade" aria-hidden />
       {/* vignette pulls the table into darkness at the edges */}
       <div className="map-vignette" aria-hidden />
-      {/* faint instrument dot-grid */}
-      <div className="map-dots" aria-hidden />
     </div>
   );
 }
