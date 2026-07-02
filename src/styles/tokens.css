@@ -1,0 +1,17 @@
+:root {
+  --bg: #03060e;
+  --bg-glass: rgba(3, 6, 14, 0.72);
+  --cyan: #35e4ff;
+  --cyan-deep: #0ab6d6;
+  --wire: #8ff4ff;
+  --holo-fill: rgba(53, 228, 255, 0.1);
+  --amber: #ffb020;
+  --red: #ff4d4d;
+  --gold: #ffd98a;
+  --grid-line: rgba(255, 255, 255, 0.12);
+  --hairline: rgba(53, 228, 255, 0.35);
+  --font-display: 'Rajdhani', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-hud: 'Share Tech Mono', monospace;
+  --ease-holo: cubic-bezier(0.22, 1, 0.36, 1);
+}
