@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import HouseHologram from './HouseHologram';
+import TourController from './TourController';
 import { getListing, getFootprint, loadAtlas } from '../data/atlasData';
 import { getModelUrl } from '../data/modelManifest';
 import { useStore } from '../store/useStore';
@@ -79,11 +80,14 @@ export default function HologramOverlay() {
       style={{ background: '#04070F', opacity: 0 }}
     >
       {payload ? (
-        <HouseHologram
-          listing={payload.listing}
-          footprint={payload.footprint}
-          modelUrl={payload.modelUrl}
-        />
+        <>
+          <HouseHologram
+            listing={payload.listing}
+            footprint={payload.footprint}
+            modelUrl={payload.modelUrl}
+          />
+          <TourController />
+        </>
       ) : (
         <div className="h-full w-full flex flex-col items-center justify-center gap-4">
           <div

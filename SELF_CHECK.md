@@ -93,3 +93,31 @@ Strict per-phase review. A phase does not pass below **95/100**.
 **Remaining:** PLAY TOUR wiring (P7); bloom-in judged from stills — motion feel checked live in P8/P9.
 
 **Score: 95/100** — pass.
+
+---
+
+## P6 — Blender GLB manifest + automatic fallback
+
+**Built:** `public/models/manifest.json` (listing id → GLB URL), `modelManifest.ts` loader (missing manifest/entry/file all degrade safely), `GLBBody` — drei `useGLTF`, deep clone, normalised to the real footprint envelope (scaled, centred, floor-seated), every mesh holo-treated (glass material + EdgesGeometry wireframe overlay), `dispose={null}` so drei's loader cache survives close/reopen, my created edge geometries explicitly disposed. `HoloBoundary` error boundary → procedural reconstruction on any load/parse failure, with `onError` feeding the HUD so the mesh label stays honest (BLENDER GLB vs OSM/INLINE/EST). Proved the whole path without Blender: `scripts/make-sample-glb.mjs` builds a gabled house (wing, chimney, porch, door) via three's GLTFExporter in Node (FileReader shim) → `jv-39.glb` (16 KB).
+
+**Tested:** `tsc -b` clean. Shot `hologram2.png`: jv-39 renders the **GLB house** (roof/chimney/porch clearly legible) holo-treated in the sphere, panel reads MESH BLENDER GLB. Shot `hologram.png`: jv-37 procedural unchanged. Break test: manifest pointed at a nonexistent file → boundary caught it, procedural fallback rendered, HUD panels alive, no blank screen (screenshot `fallback.png`), label bug found and fixed (was still claiming BLENDER GLB).
+
+**Weak:** A broken manifest entry logs one console error before recovering (React dev boundary behavior) — documented; normal flows keep console clean since the manifest ships only real files.
+
+**Improved:** Honest mesh labeling on fallback; loader-cache-safe disposal strategy.
+
+**Score: 96/100** — pass.
+
+---
+
+## P7 — PLAY TOUR cinematic timeline
+
+**Built:** `tourTimeline.ts` — a ~13 s looping GSAP master timeline driven through the rig registry: settle the idle spin → low approach to the entry face → **door swing** (any GLB node named `door*`) → cross the threshold → warm room lights ramp on room-by-room → slow interior arc drift → rise to the next floor (multi-floor houses) → pull out to the hero anchor → lights breathe down. Loop-seam safe: PLAY first glides the camera to the anchor, then rebuilds the timeline from known state so `repeat: -1` never cuts. `TourController` binds store → timeline (PLAY resumes, PAUSE freezes, RESET VIEW pauses + rewinds + re-enables orbit; OrbitControls disabled while touring). `TourScrubber`: styled range input above the dock, live % readout, scrubbing pauses and seeks. Idle house rotation parks while playing.
+
+**Tested:** `tsc -b` clean after fixing two null-narrowing errors. Real-click run (jv-39 GLB house): playhead advanced 13.2%→41.4% while playing, froze at 45.1% across a 1.2 s PAUSE window, RESET VIEW returned it to 0 — zero console errors. Mid-tour shot confirms the camera is **inside** the house with the warm room-light ramp visible and the scrubber at 42%.
+
+**Weak:** GLB houses tour an empty interior (sample GLB has no rooms — by design; Blender authors supply interiors). Loop seam judged by construction + live scrub, not a full 13 s watch in CI.
+
+**Improved:** PLAY TOUR button disabled while playing / PAUSE disabled while paused — states always truthful.
+
+**Score: 95/100** — pass.

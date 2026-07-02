@@ -201,6 +201,38 @@ body {
   background-size: 34px 34px;
 }
 
+/* ---------- tour scrubber ---------- */
+.tour-scrub {
+  appearance: none;
+  width: 380px;
+  height: 2px;
+  background: rgba(53, 228, 255, 0.18);
+  outline: none;
+  cursor: pointer;
+}
+.tour-scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  background: var(--cyan);
+  transform: rotate(45deg);
+  box-shadow: 0 0 10px rgba(53, 228, 255, 0.8);
+  cursor: grab;
+}
+.tour-scrub::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border: none;
+  border-radius: 0;
+  background: var(--cyan);
+  transform: rotate(45deg);
+  box-shadow: 0 0 10px rgba(53, 228, 255, 0.8);
+  cursor: grab;
+}
+.tour-scrub:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+
 /* hologram loading shimmer */
 .holo-loading__fill {
   animation: holo-load 1.4s var(--ease-holo) infinite;

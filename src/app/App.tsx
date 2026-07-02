@@ -5,6 +5,7 @@ import HologramOverlay from '../hologram/HologramOverlay';
 import TopBar from '../ui/TopBar';
 import ControlDock from '../ui/ControlDock';
 import ListingRail from '../ui/ListingRail';
+import TourScrubber from '../ui/TourScrubber';
 import StatusTicker from '../ui/StatusTicker';
 import Reticle from '../ui/Reticle';
 import { useStore } from '../store/useStore';
@@ -27,6 +28,7 @@ export default function App() {
       {hudVisible && mode === 'MAP' && <ListingRail />}
       <TopBar />
       {hudVisible && <ControlDock />}
+      {hudVisible && mode === 'HOLOGRAM' && <TourScrubber />}
       {hudVisible && (
         <div className="absolute bottom-7 left-7 z-40">
           <StatusTicker />
